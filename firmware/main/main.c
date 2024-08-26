@@ -2,6 +2,7 @@
 #include "mpu6050.h"
 #include "sht30.h"
 #include "lora_module.h"
+#include "ir_sensor.h"
 
 void app_main(void) {
     mpu6050_t config = {
