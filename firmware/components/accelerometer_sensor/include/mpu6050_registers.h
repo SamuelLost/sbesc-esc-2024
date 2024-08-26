@@ -1,7 +1,7 @@
 #ifndef _MPU6050_REGISTERS_H_
 #define _MPU6050_REGISTERS_H_
 
-#define MPU6050_ADDR            0x68
+#define MPU6050_DEFAULT_ADDR    0x68
 #define MPU6050_WHO_AM_I        0x75
 #define MPU6050_PWR_MGMT_1      0x6B
 #define MPU6050_ACCEL_CONFIG    0x1C
