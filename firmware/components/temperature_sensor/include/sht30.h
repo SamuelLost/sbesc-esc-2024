@@ -14,8 +14,8 @@ extern "C" {
 typedef struct {
     i2c_t i2c;
     uint8_t addr; // Device I2C address
-    float _temperature; // (Internal) Temperature value
-    float _humidity;   // (Internal) Humidity value
+    float temperature; // (Internal) Temperature value
+    float humidity;   // (Internal) Humidity value
 } sht30_t;
 
 /**
