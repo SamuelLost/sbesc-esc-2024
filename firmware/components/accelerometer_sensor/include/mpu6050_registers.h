@@ -1,0 +1,17 @@
+#ifndef _MPU6050_REGISTERS_H_
+#define _MPU6050_REGISTERS_H_
+
+#define MPU6050_ADDR            0x68
+#define MPU6050_WHO_AM_I        0x75
+#define MPU6050_PWR_MGMT_1      0x6B
+#define MPU6050_ACCEL_CONFIG    0x1C
+#define MPU6050_GYRO_CONFIG     0x1B
+#define MPU6050_ACCEL_XOUT_H    0x3B
+#define MPU6050_ACCEL_XOUT_L    0x3C
+#define MPU6050_ACCEL_YOUT_H    0x3D
+#define MPU6050_ACCEL_YOUT_L    0x3E
+#define MPU6050_ACCEL_ZOUT_H    0x3F
+#define MPU6050_ACCEL_ZOUT_L    0x40
+
+
+#endif // _MPU6050_REGISTERS_H_
