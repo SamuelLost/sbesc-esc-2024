@@ -44,41 +44,41 @@ typedef enum {
 // MPU6050 configuration structure
 typedef struct {
     i2c_t i2c;
-
-    struct accel_t {
-        accel_range_t range;
-        uint8_t sensitivity;
-    } accel;
-
-    struct gyro_t {
-        gyro_range_t range;
-        uint8_t sensitivity;
-    } gyro;
+    uint8_t addr;
+    accel_range_t accel_range;
+    gyro_range_t gyro_range;
 } mpu6050_t;
 
 /**
  * @brief Initialize the MPU6050 sensor
  * 
  * @param config mpu6050_t configuration structure
- * @return esp_err_t 
+ * @return bool 
  */
-esp_err_t mpu6050_init(mpu6050_t *config);
+bool mpu6050_init(mpu6050_t *config);
+
+/**
+ * @brief Deinitialize the MPU6050 sensor
+ * 
+ * @param config mpu6050_t configuration structure
+ */
+void mpu6050_deinit(mpu6050_t *config);
 
 /**
  * @brief Get the acceleration data
  * 
  * @param accel_data
- * @return esp_err_t 
+ * @return bool 
  */
-esp_err_t mpu6050_get_acceleration(acceleration_data_t *accel_data);
+bool mpu6050_get_acceleration(acceleration_data_t *accel_data);
 
 /**
  * @brief Get the gyroscope data
  * 
  * @param gyro_data 
- * @return esp_err_t 
+ * @return bool 
  */
-esp_err_t mpu6050_get_gyroscope(gyroscope_data_t *gyro_data);
+bool mpu6050_get_gyroscope(gyroscope_data_t *gyro_data);
 
 
 #ifdef __cplusplus
