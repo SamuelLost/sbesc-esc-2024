@@ -17,6 +17,17 @@ extern "C" {
 /** G-force constant */
 #define G_FORCE 9.81
 
+/** Time to restart the ESP32 */
+#define TIME_TO_RESTART 7
+
+/** Restart the ESP32 */
+#define RESTART(tag, delay)                                     \
+    do {                                                        \
+        ESP_LOGE(tag, "Restarting in %d seconds...", delay);    \
+        vTaskDelay((delay) * 1000 / portTICK_PERIOD_MS);        \
+        esp_restart();                                          \
+    } while (0)
+
 #ifdef __cplusplus
 }
 #endif
