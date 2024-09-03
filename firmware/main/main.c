@@ -4,6 +4,7 @@
 #include "lora_module.h"
 #include "ir_sensor.h"
 #include "esp_log.h"
+#include "utils.h"
 
 #define TAG "MAIN"
 
@@ -29,10 +30,11 @@ void app_main(void) {
     };  
 
     if (!mpu6050_init(&local_data.mpu6050_config)) {
-        ESP_LOGE("MAIN", "MPU6050 initialization failed\n");
+        ESP_LOGE(TAG, "MPU6050 initialization failed");
+        RESTART(TAG, TIME_TO_RESTART);
     }
 
-    ESP_LOGI("MAIN", "MPU6050 initialized\n");
+    ESP_LOGI(TAG, "MPU6050 initialized\n");
     
     xTaskCreatePinnedToCore(vTaskAccelerometer, 
                             "Accelerometer Task", 

@@ -34,7 +34,7 @@ typedef struct {
 
 typedef enum {
     A2G, // +/- 2g
-    A4G, // +/- 4g: 
+    A4G, // +/- 4g
     A8G, // +/- 8g
     A16G // +/- 16g
 } accel_range_t;
