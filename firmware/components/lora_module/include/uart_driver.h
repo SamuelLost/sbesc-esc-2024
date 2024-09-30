@@ -38,10 +38,9 @@ void uart_deinit(uart_t *uart);
  * @param uart UART configuration structure
  * @param data Data buffer
  * @param size Data size
- * @return true
- * @return false 
+ * @return size_t - Number of bytes written
  */
-bool uart_write(uart_t *uart, uint8_t *data, uint32_t size);
+size_t uart_write(uart_t *uart, uint8_t *data, uint32_t size);
 
 /**
  * @brief Read data from the UART bus
@@ -49,10 +48,9 @@ bool uart_write(uart_t *uart, uint8_t *data, uint32_t size);
  * @param uart UART configuration structure
  * @param data Data buffer
  * @param size Data size
- * @return true
- * @return false 
+ * @return size_t - Number of bytes read 
  */
-bool uart_read(uart_t *uart, uint8_t *data, uint32_t size);
+size_t uart_read(uart_t *uart, uint8_t *data, uint32_t size);
 
 #ifdef __cplusplus
 }
