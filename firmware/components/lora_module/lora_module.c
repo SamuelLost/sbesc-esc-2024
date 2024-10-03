@@ -3,14 +3,10 @@
 #include "esp_log.h"
 #include <string.h>
 
-#define MAX_PAYLOAD_SIZE 232
-#define MAX_BUFFER_SIZE 237
-const char *TAG = "LORA_MODULE";
 
-typedef struct {
-    uint8_t buffer[MAX_BUFFER_SIZE];
-    uint32_t size;
-} lora_packet_t;
+/* ======================== PRIVATE STRUCTURES ======================== */
+const char *TAG = "LORA_MODULE";
+#define MAX_PAYLOAD_SIZE 232
 
 typedef struct {
     uint16_t id;
@@ -28,12 +24,19 @@ typedef struct {
 
 static local_device_info_t local_device_info;
 
+/* ======================== PRIVATE FUNCTIONS ======================== */
 static inline uint16_t _calculate_crc16(uint8_t *data, uint32_t length);
 static inline bool _prepare_packet(uint16_t id, lora_cmd_t command, uint8_t *data, uint32_t size, lora_packet_t *packet);
 static bool _read_local_device_info(lora_module_t *lora_module, local_device_info_t *device_info);
 static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, lora_window_t lora_window);
 static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, spread_factor_t spread_factor, coding_rate_t coding_rate);
 static void _print_device_info(local_device_info_t *device_info);
+const char* _lora_class_to_string(lora_class_t lora_class);
+const char* _lora_window_to_string(lora_window_t lora_window);
+const char* _spread_factor_to_string(spread_factor_t spread_factor);
+const char* _coding_rate_to_string(coding_rate_t coding_rate);
+const char* _bandwidth_to_string(bandwidth_t bandwidth);
+
 bool lora_module_init(lora_module_t *lora_module) {
     if (!IS_VALID(lora_module)) {
         return false;
@@ -76,58 +79,37 @@ void lora_module_deinit(lora_module_t *lora_module) {
     uart_deinit(&lora_module->uart_config); 
 }
 
-bool lora_module_send(lora_module_t *lora_module, uint8_t *data, uint32_t size) {
-    if (!IS_VALID(lora_module) || !IS_VALID(data)) {
+bool lora_module_send(lora_module_t *lora_module, lora_packet_t *lora_packet) {
+    if (!IS_VALID(lora_module) || !IS_VALID(lora_packet)) {
         return false;
     }
 
-    if (size == 0 || size > MAX_PAYLOAD_SIZE) {
+    if (lora_packet->size == 0 || lora_packet->size > MAX_PAYLOAD_SIZE) {
         return false;
     }
 
-    if (uart_write(&lora_module->uart_config, data, size) != size) {
+    if (uart_write(&lora_module->uart_config, lora_packet->buffer, lora_packet->size) != lora_packet->size) {
         return false;
     }
 
     return true;
 }
 
-bool lora_module_receive(lora_module_t *lora_module, uint8_t *data, uint32_t size) {
-    if (!IS_VALID(lora_module) || !IS_VALID(data)) {
+bool lora_module_receive(lora_module_t *lora_module, lora_packet_t *lora_packet) {
+    if (!IS_VALID(lora_module) || !IS_VALID(lora_packet)) {
         return false;
     }
 
-    if (size == 0 || size > MAX_PAYLOAD_SIZE) {
+    size_t bytes_read = uart_read(&lora_module->uart_config, lora_packet->buffer, MAX_PAYLOAD_SIZE);
+    if (bytes_read == 0) {
         return false;
     }
 
-    size_t bytes_read = uart_read(&lora_module->uart_config, data, size);
-    // packet.size = bytes_read;
-    // printf("Bytes read: %d\n", bytes_read);
-    // for (int i = 0; i < bytes_read; i++) {
-    //     printf("0x%02X ", data[i]);
-    // }
-    // printf("\n");
+    lora_packet->size = bytes_read;
 
     return true;
 }
 
-void _print_device_info(local_device_info_t *device_info) {
-    printf("==========================================\n");
-    printf("            DEVICE INFORMATION            \n");
-    printf("==========================================\n");
-    printf("ID:                 %d\n", device_info->id);
-    printf("UID:                %lu\n", device_info->uid);
-    printf("Password:           %lu\n", device_info->password);
-    printf("Firmware version:   %u.%u\n", device_info->fw_version, device_info->fw_revision);
-    printf("LoRa class:         %d\n", device_info->lora_class);
-    printf("LoRa window:        %d\n", device_info->lora_window);
-    printf("Spread factor:      %d\n", device_info->spread_factor);
-    printf("Coding rate:        %d\n", device_info->coding_rate);
-    printf("Bandwidth:          %d\n", device_info->bandwidth);
-    printf("Power (dBm):        %d\n", device_info->power_dbm);
-    printf("==========================================\n");
-}
 /**
  * @brief Calculate the CRC16 of a data buffer
  * 
@@ -221,33 +203,31 @@ static bool _read_local_device_info(lora_module_t *lora_module, local_device_inf
     }
     
     // Envia o pacote para o módulo LoRa
-    if (!lora_module_send(lora_module, packet.buffer, packet.size)) {
-        printf("Error sending packet\n");
+    if (!lora_module_send(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error sending packet");
         return false;
     }
 
     // Aguarda a resposta do módulo LoRa
-    if (lora_module_receive(lora_module, packet.buffer, 31)) { // CMD_LOCAL_READ: 31 bytes of data
-        // Verifica se o comando recebido é o esperado
-        if (packet.buffer[2] == CMD_LOCAL_READ) {
-            device_info->id = packet.buffer[0] | (packet.buffer[1] << 8);
-            /**
-            * |   5       |  6  |  7  |     8
-            * | UID (MSB) | UID | UID | UID (LSB)
-            *
-            */ 
-            device_info->uid = packet.buffer[5] | (packet.buffer[6] << 8) | (packet.buffer[7] << 16) | (packet.buffer[8] << 24);
-            device_info->password = packet.buffer[3] | (packet.buffer[4] << 8);
-            device_info->fw_version = packet.buffer[17];
-            device_info->fw_revision = packet.buffer[11];
-
-            return true;
-        }
-    } else {
-        printf("Error receiving packet\n");
+    if (!lora_module_receive(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error receiving packet");
+        return false;
     }
 
-    return false;
+    // Verifica se o comando recebido é o esperado
+    if (packet.buffer[2] != CMD_LOCAL_READ) {
+        ESP_LOGE(TAG, "Invalid command received");
+        return false;
+    }
+
+    // Preenche o device_info com os dados recebidos
+    device_info->id = packet.buffer[0] | (packet.buffer[1] << 8);
+    device_info->uid = packet.buffer[5] | (packet.buffer[6] << 8) | (packet.buffer[7] << 16) | (packet.buffer[8] << 24);
+    device_info->password = packet.buffer[3] | (packet.buffer[4] << 8);
+    device_info->fw_version = packet.buffer[17];
+    device_info->fw_revision = packet.buffer[11];
+
+    return true;
 }
 
 /**
@@ -280,20 +260,25 @@ static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, l
         return false;
     }
 
-    if (!lora_module_send(lora_module, packet.buffer, packet.size)) {
+    if (!lora_module_send(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error sending packet");
         return false;
     }
 
-    packet.size = 9;
-    if (lora_module_receive(lora_module, packet.buffer, packet.size)) { // CMD_CONFIG_CLASS: 9 bytes of data
-        if (packet.buffer[2] == CMD_CONFIG_CLASS) {
-            local_device_info.lora_class = packet.buffer[5]; // Atualiza a classe de operação
-            local_device_info.lora_window = packet.buffer[6]; // Atualiza a janela de recepção
-            return true;
-        }
+    if (!lora_module_receive(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error receiving packet");
+        return false;
     }
 
-    return false;
+    if (packet.buffer[2] != CMD_CONFIG_CLASS) {
+        ESP_LOGE(TAG, "Invalid command received");
+        return false;
+    }
+
+    local_device_info.lora_class = packet.buffer[5]; // Atualiza a classe de operação
+    local_device_info.lora_window = packet.buffer[6]; // Atualiza a janela de recepção
+    
+    return true;
 }
 
 /**
@@ -332,20 +317,115 @@ static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, sprea
         return false;
     }
 
-    if (!lora_module_send(lora_module, packet.buffer, packet.size)) {
+    if (!lora_module_send(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error sending packet");
         return false;
     }
 
-    packet.size = 10; // CMD_LOCAL_WRITE: 10 bytes of data
-    if (lora_module_receive(lora_module, packet.buffer, packet.size)) {
-        if (packet.buffer[2] == CMD_LOCAL_WRITE) {
-            local_device_info.power_dbm = packet.buffer[4]; // Atualiza a potência de transmissão
-            local_device_info.bandwidth = packet.buffer[5]; // Atualiza a largura de banda
-            local_device_info.spread_factor = packet.buffer[6]; // Atualiza o fator de espalhamento
-            local_device_info.coding_rate = packet.buffer[7]; // Atualiza a taxa de codificação
-            return true;
-        }
+    if (!lora_module_receive(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error receiving packet");
+        return false;
     }
 
+    if (packet.buffer[2] != CMD_LOCAL_WRITE) {
+        ESP_LOGE(TAG, "Invalid command received");
+        return false;
+    }
+
+    local_device_info.power_dbm = packet.buffer[4]; // Atualiza a potência de transmissão
+    local_device_info.bandwidth = packet.buffer[5]; // Atualiza a largura de banda
+    local_device_info.spread_factor = packet.buffer[6]; // Atualiza o fator de espalhamento
+    local_device_info.coding_rate = packet.buffer[7]; // Atualiza a taxa de codificação
+    return true;
+
     return false;
+}
+
+const char* _lora_class_to_string(lora_class_t lora_class) {
+    switch (lora_class) {
+        case LORA_CLASS_A:
+            return "A"; 
+        case LORA_CLASS_C:
+            return "C";
+        default:
+            return "UNKNOWN_CLASS";
+    }
+}
+
+const char* _lora_window_to_string(lora_window_t lora_window) {
+    switch (lora_window) {
+        case LORA_WINDOW_5s:
+            return "5s";
+        case LORA_WINDOW_10s:
+            return "10s";
+        case LORA_WINDOW_15s:
+            return "15s";
+        default:
+            return "UNKNOWN_WINDOW";
+    }
+}
+
+const char* _spread_factor_to_string(spread_factor_t sf) {
+    switch (sf) {
+        case SF_7:
+            return "SF_7";
+        case SF_8:
+            return "SF_8";
+        case SF_9:
+            return "SF_9";
+        case SF_10:
+            return "SF_10";
+        case SF_11:
+            return "SF_11";
+        case SF_12:
+            return "SF_12";
+        default:
+            return "UNKNOWN_SF";
+    }
+}
+
+const char* _coding_rate_to_string(coding_rate_t cr) {
+    switch (cr) {
+        case CR_4_5:
+            return "4/5";
+        case CR_4_6:
+            return "4/6";
+        case CR_4_7:
+            return "4/7";
+        case CR_4_8:
+            return "4/8";
+        default:
+            return "UNKNOWN_CODING_RATE";
+    }
+}
+
+const char* _bandwidth_to_string(bandwidth_t bw) {
+    switch (bw) {
+        case BANDWIDTH_125KHZ:
+            return "125 KHZ";
+        case BANDWIDTH_250KHZ:
+            return "250 KHZ";
+        case BANDWIDTH_500KHZ:
+            return "500 KHZ";
+        default:
+            return "UNKNOWN_BANDWIDTH";
+    }
+}
+
+
+void _print_device_info(local_device_info_t *device_info) {
+    printf("==========================================\n");
+    printf("            DEVICE INFORMATION            \n");
+    printf("==========================================\n");
+    printf("ID:                 %d\n", device_info->id);
+    printf("UID:                %lu\n", device_info->uid);
+    printf("Password:           %lu\n", device_info->password);
+    printf("Firmware version:   %u.%u\n", device_info->fw_version, device_info->fw_revision);
+    printf("LoRa class:         %s\n", _lora_class_to_string(device_info->lora_class));
+    printf("LoRa window:        %s\n", _lora_window_to_string(device_info->lora_window));
+    printf("Spread factor:      %s\n", _spread_factor_to_string(device_info->spread_factor));
+    printf("Coding rate:        %s\n", _coding_rate_to_string(device_info->coding_rate));
+    printf("Bandwidth:          %s\n", _bandwidth_to_string(device_info->bandwidth));
+    printf("Power (dBm):        %d\n", device_info->power_dbm);
+    printf("==========================================\n");
 }
