@@ -12,6 +12,7 @@
 typedef struct local_data_t {
     mpu6050_t mpu6050_config;
     lora_module_t lora_config;
+    uart_t uart_config;
 } local_data_t;
 
 static local_data_t local_data = {};
@@ -62,6 +63,19 @@ void app_main(void) {
     }
 
     ESP_LOGI(TAG, "LoRa module initialized");
+
+    // Configuração utilizada pelo sensor de distância laser
+    local_data.uart_config = (uart_t) {
+        .uart_port = UART_NUM_1,
+        .baud_rate = 115200,
+        .tx_pin = GPIO_NUM_4,
+        .rx_pin = GPIO_NUM_5,
+    };
+
+    if (!uart_init(&local_data.uart_config)) {
+        ESP_LOGE(TAG, "UART initialization failed");
+        RESTART(TAG, TIME_TO_RESTART);
+    }
     
     // xTaskCreatePinnedToCore(vTaskAccelerometer, 
     //                         "Accelerometer Task", 
@@ -71,13 +85,13 @@ void app_main(void) {
     //                         NULL, 
     //                         APP_CPU_NUM);
 
-    // xTaskCreatePinnedToCore(vTaskLora,
-    //                         "Lora Task",
-    //                         2048,
-    //                         NULL,
-    //                         5,
-    //                         NULL,
-    //                         APP_CPU_NUM);
+    xTaskCreatePinnedToCore(vTaskLora,
+                            "Lora Task",
+                            2048,
+                            NULL,
+                            5,
+                            NULL,
+                            APP_CPU_NUM);
 }
 
 void vTaskAccelerometer(void *pvParameters) {
@@ -108,16 +122,16 @@ void vTaskLora(void *pvParameters) {
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
     uint8_t data[] = "Embedded Systems Competition (ESC) 2024 - Boia para Monitoramento e Prevenção de Inundações\r\n";
-    uart_write(&local_data.lora_config.uart_config, data, sizeof(data));
+    uart_write(&local_data.uart_config, data, sizeof(data));
 
     while (true) {
         uint8_t data[13] = {};  // Aumenta o buffer para acomodar \r\n
-        size_t bytes_read = uart_read(&local_data.lora_config.uart_config, data, 11);  // Continua lendo até 11 bytes
+        size_t bytes_read = uart_read(&local_data.uart_config, data, 11);  // Continua lendo até 11 bytes
         if (bytes_read) {
             // Adiciona \r\n no final dos dados recebidos
             data[bytes_read] = '\r';
             data[bytes_read + 1] = '\n';
-            uart_write(&local_data.lora_config.uart_config, data, bytes_read + 2);  // Escreve incluindo \r\n
+            uart_write(&local_data.uart_config, data, bytes_read + 2);  // Escreve incluindo \r\n
 
             // Log da mensagem recebida
             ESP_LOGI(TAG, "Received: %.*s", bytes_read, data);  // Imprime apenas os dados lidos
