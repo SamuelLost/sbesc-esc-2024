@@ -24,7 +24,8 @@ extern "C" {
  */
 typedef enum {
     LORA_CLASS_A = 0x00,
-    LORA_CLASS_C = 0x02
+    LORA_CLASS_C = 0x02,
+    LORA_CLASS_NUM_MAX // Número máximo de classes
 } lora_class_t;
 
 /**
@@ -32,9 +33,10 @@ typedef enum {
  * 
  */
 typedef enum {
-    WINDOW_5s = 0x00,
-    WINDOW_10s = 0x01,
-    WINDOW_15s = 0x02,
+    LORA_WINDOW_5s = 0x00,
+    LORA_WINDOW_10s = 0x01,
+    LORA_WINDOW_15s = 0x02,
+    LORA_WINDOW_NUM_MAX // Número máximo de janelas
 } lora_window_t; 
 
 /**
@@ -47,7 +49,8 @@ typedef enum {
     SF_9 = 0x09,
     SF_10 = 0x0A,
     SF_11 = 0x0B,
-    SF_12 = 0x0C
+    SF_12 = 0x0C,
+    SF_NUM_MAX // Número máximo de fatores de espalhamento
 } spread_factor_t;
 
 /**
@@ -58,7 +61,8 @@ typedef enum {
     CR_4_5 = 0x01,
     CR_4_6 = 0x02,
     CR_4_7 = 0x03,
-    CR_4_8 = 0x04
+    CR_4_8 = 0x04,
+    CR_NUM_MAX // Número máximo de taxas de codificação
 } coding_rate_t;
 
 /**
@@ -68,7 +72,8 @@ typedef enum {
 typedef enum {
     BANDWIDTH_125KHZ = 0x00,
     BANDWIDTH_250 = 0x01,
-    BANDWIDTH_500 = 0x02
+    BANDWIDTH_500 = 0x02,
+    BANDWIDTH_NUM_MAX // Número máximo de larguras de banda
 } bandwidth_t;
 
 /**
@@ -89,8 +94,9 @@ typedef enum {
     CMD_CONFIG_CLASS = 0xC1, // Configuração da classe de operação
     CMD_PERIODIC_TEST = 0x01, // Teste periodico enviado dos escravos para o mestre. Configurável pelo comando 0xCA
     CMD_SET_PASSWORD = 0xCD, // Configuração de senha
+    SUBCMD_WRITE = 0x01, // Subcomando de escrita
+    SUBCMD_READ = 0x00, // Subcomando de leitura
 } lora_cmd_t;
-
 
 /**
  * @brief LoRa module configuration structure
@@ -102,8 +108,8 @@ typedef struct lora_module_t {
     coding_rate_t coding_rate; // Taxa de codificação
     bandwidth_t bandwidth; // Largura de banda
     lora_class_t lora_class; // Classe de operação
-    lora_window_t window; // Janela de recepção
-    
+    lora_window_t lora_window; // Janela de recepção
+
 } lora_module_t;
 
 /**
