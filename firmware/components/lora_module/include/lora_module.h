@@ -18,6 +18,13 @@
 extern "C" {
 #endif
 
+#define MAX_BUFFER_SIZE 237
+
+typedef struct {
+    uint8_t buffer[MAX_BUFFER_SIZE];
+    uint32_t size;
+} lora_packet_t;
+
 /**
  * @brief LoRa class enumeration
  * 
@@ -71,8 +78,8 @@ typedef enum {
  */
 typedef enum {
     BANDWIDTH_125KHZ = 0x00,
-    BANDWIDTH_250 = 0x01,
-    BANDWIDTH_500 = 0x02,
+    BANDWIDTH_250KHZ = 0x01,
+    BANDWIDTH_500KHZ = 0x02,
     BANDWIDTH_NUM_MAX // Número máximo de larguras de banda
 } bandwidth_t;
 
@@ -137,7 +144,7 @@ void lora_module_deinit(lora_module_t *lora);
  * @return true
  * @return false 
  */
-bool lora_module_send(lora_module_t *lora, uint8_t *data, uint32_t size);
+bool lora_module_send(lora_module_t *lora, lora_packet_t *lora_packet);
 
 /**
  * @brief Receive data from the LoRa module
@@ -148,7 +155,7 @@ bool lora_module_send(lora_module_t *lora, uint8_t *data, uint32_t size);
  * @return true
  * @return false 
  */
-bool lora_module_receive(lora_module_t *lora, uint8_t *data, uint32_t size);
+bool lora_module_receive(lora_module_t *lora, lora_packet_t *lora_packet);
 
 #ifdef __cplusplus
 }
