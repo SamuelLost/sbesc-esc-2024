@@ -1,35 +1,37 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- |
+# Embedded Systems Competition (ESC) 2024
 
-# _Sample project_
+| Supported Targets | ESP32 |
+| ----------------- | ----- |
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Team Name: Boia para Monitoramento e Prevenção de Inundações
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+### Team Members
 
+- José Bastista de Sousa Júnior
+- Larissa da Silva Matos
+- Samuel Henrique Guimarães Alencar
+- Wagner Al-Alam Guimarães (orientador)
 
+### UART Communication
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+- UART1 -> TX_PIN: GPIO_NUM_4, RX_PIN: GPIO_NUM_5
 
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
+```c
+local_data.uart_config = (uart_t) {
+        .uart_port = UART_NUM_1,
+        .baud_rate = 115200,
+        .tx_pin = GPIO_NUM_4,
+        .rx_pin = GPIO_NUM_5,
+    };
 ```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
+
+- UART2 -> TX_PIN: GPIO_NUM_17, RX_PIN: GPIO_NUM_16
+
+```c
+local_data.uart_config = (uart_t) {
+        .uart_port = UART_NUM_2,
+        .baud_rate = 115200,
+        .tx_pin = GPIO_NUM_17,
+        .rx_pin = GPIO_NUM_16,
+    };
 ```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
