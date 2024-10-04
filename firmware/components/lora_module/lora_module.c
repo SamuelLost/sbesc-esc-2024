@@ -26,10 +26,11 @@ static local_device_info_t local_device_info;
 
 /* ======================== PRIVATE FUNCTIONS ======================== */
 static inline uint16_t _calculate_crc16(uint8_t *data, uint32_t length);
-static inline bool _prepare_packet(uint16_t id, lora_cmd_t command, uint8_t *data, uint32_t size, lora_packet_t *packet);
+static inline bool _prepare_packet_command(uint16_t id, lora_cmd_t command, uint8_t *data, uint32_t size, lora_packet_t *packet);
 static bool _read_local_device_info(lora_module_t *lora_module, local_device_info_t *device_info);
 static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, lora_window_t lora_window);
 static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, spread_factor_t spread_factor, coding_rate_t coding_rate);
+static bool _set_network_id(lora_module_t *lora_module);
 static void _print_device_info(local_device_info_t *device_info);
 const char* _lora_class_to_string(lora_class_t lora_class);
 const char* _lora_window_to_string(lora_window_t lora_window);
@@ -53,6 +54,10 @@ bool lora_module_init(lora_module_t *lora_module) {
     }
     
     ESP_LOGI(TAG, "Local device information read successfully");
+
+    if (!_set_network_id(lora_module)) {
+        return false;
+    }
 
     if (!_config_class(lora_module, lora_module->lora_class, lora_module->lora_window)) {
         return false;
@@ -150,7 +155,7 @@ static inline uint16_t _calculate_crc16(uint8_t *data, uint32_t length) {
  * @return true: Packet prepared successfully
  * @return false: Error preparing the packet
  */
-static inline bool _prepare_packet(uint16_t id, lora_cmd_t command, uint8_t *data, uint32_t size, lora_packet_t *packet) {
+static inline bool _prepare_packet_command(uint16_t id, lora_cmd_t command, uint8_t *data, uint32_t size, lora_packet_t *packet) {
     // Verifica se o tamanho do payload é válido
     if (size == 0 || size > MAX_PAYLOAD_SIZE) {
         return false;
@@ -198,7 +203,7 @@ static bool _read_local_device_info(lora_module_t *lora_module, local_device_inf
     buffer_payload[i++] = 0x00; // Payload size
     
     lora_packet_t packet;
-    if (!_prepare_packet(0x0000, CMD_LOCAL_READ, buffer_payload, i, &packet)) {
+    if (!_prepare_packet_command(0x0000, CMD_LOCAL_READ, buffer_payload, i, &packet)) {
         return false;
     }
     
@@ -216,13 +221,13 @@ static bool _read_local_device_info(lora_module_t *lora_module, local_device_inf
 
     // Verifica se o comando recebido é o esperado
     if (packet.buffer[2] != CMD_LOCAL_READ) {
-        ESP_LOGE(TAG, "Invalid command received");
+        ESP_LOGE("CMD_LOCAL_READ", "Invalid command received: %02X", packet.buffer[2]);
         return false;
     }
 
     // Preenche o device_info com os dados recebidos
     device_info->id = packet.buffer[0] | (packet.buffer[1] << 8);
-    device_info->uid = packet.buffer[5] | (packet.buffer[6] << 8) | (packet.buffer[7] << 16) | (packet.buffer[8] << 24);
+    device_info->uid = (packet.buffer[5] << 24) | (packet.buffer[6] << 16) | (packet.buffer[7] << 8) | packet.buffer[8];
     device_info->password = packet.buffer[3] | (packet.buffer[4] << 8);
     device_info->fw_version = packet.buffer[17];
     device_info->fw_revision = packet.buffer[11];
@@ -256,7 +261,7 @@ static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, l
     buffer_payload[i++] = 0x00;
 
     lora_packet_t packet;
-    if (!_prepare_packet(local_device_info.id, CMD_CONFIG_CLASS, buffer_payload, i, &packet)) {
+    if (!_prepare_packet_command(local_device_info.id, CMD_CONFIG_CLASS, buffer_payload, i, &packet)) {
         return false;
     }
 
@@ -271,7 +276,7 @@ static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, l
     }
 
     if (packet.buffer[2] != CMD_CONFIG_CLASS) {
-        ESP_LOGE(TAG, "Invalid command received");
+        ESP_LOGE("CMD_CONFIG_CLASS", "Invalid command received: %02X", packet.buffer[2]);
         return false;
     }
 
@@ -313,7 +318,7 @@ static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, sprea
     buffer_payload[i++] = coding_rate;
 
     lora_packet_t packet;
-    if (!_prepare_packet(local_device_info.id, CMD_LOCAL_WRITE, buffer_payload, i, &packet)) {
+    if (!_prepare_packet_command(local_device_info.id, CMD_LOCAL_WRITE, buffer_payload, i, &packet)) {
         return false;
     }
 
@@ -328,7 +333,7 @@ static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, sprea
     }
 
     if (packet.buffer[2] != CMD_LOCAL_WRITE) {
-        ESP_LOGE(TAG, "Invalid command received");
+        ESP_LOGE("CMD_LOCAL_WRITE", "Invalid command received: %02X", packet.buffer[2]);
         return false;
     }
 
@@ -339,6 +344,53 @@ static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, sprea
     return true;
 
     return false;
+}
+
+/**
+ * @brief Set the network ID
+ * 
+ * @param network_id: Network ID
+ * @return true: Network ID set successfully
+ * @return false: Error setting the network ID
+ */
+static bool _set_network_id(lora_module_t *lora_module) {
+    uint8_t i = 0;
+    uint8_t buffer_payload[MAX_BUFFER_SIZE] = {0};
+
+    buffer_payload[i++] = 0x00; //3
+    buffer_payload[i++] = 0x00; //4
+    buffer_payload[i++] = local_device_info.uid >> 24; //5
+    buffer_payload[i++] = local_device_info.uid >> 16; //6
+    buffer_payload[i++] = local_device_info.uid >> 8; //7
+    buffer_payload[i++] = local_device_info.uid & 0xFF; //8
+    buffer_payload[i++] = 0x00; //9
+    buffer_payload[i++] = 0x00; //10
+    buffer_payload[i++] = 0x00; //11
+    buffer_payload[i++] = 0x00; //12
+    buffer_payload[i++] = 0x00;
+    buffer_payload[i++] = 0x04;
+
+    lora_packet_t packet;
+    if (!_prepare_packet_command(lora_module->device_id, CMD_WRITE_RADIO_CONFIG, buffer_payload, i, &packet)) {
+        return false;
+    }
+
+    if (!lora_module_send(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error sending packet");
+        return false;
+    }
+
+    if (!lora_module_receive(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error receiving packet");
+        return false;
+    }
+
+    if (packet.buffer[2] != CMD_WRITE_RADIO_CONFIG) {
+        ESP_LOGE("CMD_WRITE_RADIO_CONFIG", "Invalid command received: %02X", packet.buffer[2]);
+        return false;
+    }
+
+    return true;
 }
 
 const char* _lora_class_to_string(lora_class_t lora_class) {
@@ -428,4 +480,31 @@ void _print_device_info(local_device_info_t *device_info) {
     printf("Bandwidth:          %s\n", _bandwidth_to_string(device_info->bandwidth));
     printf("Power (dBm):        %d\n", device_info->power_dbm);
     printf("==========================================\n");
+}
+
+bool prepare_lora_packet(uint16_t id, lora_cmd_t command, char *data, lora_packet_t *packet) {
+    // Ref: https://github.com/Radioenge/LoRaMESH-ESP8266/blob/9fbfb3df9ab354f1fa2564fff599df409a2ea366/LoRaMESH.ino#L353
+    // uint8_t id_lsb = id & 0xFF;
+    // uint8_t id_msb = (id >> 8) & 0xFF;
+    // uint8_t command_byte = command;
+    // int size = strlen(data) + 1; // +1 for the null terminator
+    // char payload[size];
+    // strncpy(payload, data, size);
+    // uint8_t buffer[size + 5]; // ID (2 bytes) + Command (1 byte) + CRC16 (2 bytes)
+    // buffer[0] = id_lsb;
+    // buffer[1] = id_msb;
+    // buffer[2] = command_byte;
+    // int count = 0;
+    // for (count = 3; count < (size + 3); count++) {
+    //     buffer[count] = payload[count - 3];
+    // }
+    // uint16_t crc = _calculate_crc16(buffer, size + 3);
+    // buffer[size + 3] = crc & 0xFF;
+    // buffer[size + 4] = (crc >> 8) & 0xFF;
+    // packet->size = size + 5;
+    // for (count = 0; count < packet->size; count++) {
+    //     packet->buffer[count] = buffer[count];
+    // }
+
+    return _prepare_packet_command(id, command, (uint8_t*)data, strlen(data)+1, packet);
 }

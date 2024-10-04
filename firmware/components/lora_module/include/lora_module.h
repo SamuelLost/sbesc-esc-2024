@@ -103,6 +103,7 @@ typedef enum {
     CMD_SET_PASSWORD = 0xCD, // Configuração de senha
     SUBCMD_WRITE = 0x01, // Subcomando de escrita
     SUBCMD_READ = 0x00, // Subcomando de leitura
+    CMD_APPLICATION = 0x10, // Comando de aplicação (envio de dados)
 } lora_cmd_t;
 
 /**
@@ -116,7 +117,7 @@ typedef struct lora_module_t {
     bandwidth_t bandwidth; // Largura de banda
     lora_class_t lora_class; // Classe de operação
     lora_window_t lora_window; // Janela de recepção
-
+    uint8_t device_id; // ID do dispositivo
 } lora_module_t;
 
 /**
@@ -156,6 +157,20 @@ bool lora_module_send(lora_module_t *lora, lora_packet_t *lora_packet);
  * @return false 
  */
 bool lora_module_receive(lora_module_t *lora, lora_packet_t *lora_packet);
+
+/**
+ * @brief Prepare a LoRa packet
+ * 
+ * @param id the device ID to be sent
+ * @param command the command to be sent
+ * @param data the data to be sent
+ * @param packet the packet structure
+ * @return true 
+ * @return false 
+ */
+bool prepare_lora_packet(uint16_t id, lora_cmd_t command, char *data, lora_packet_t *packet);
+
+const char* get_message_from_lora_packet(lora_packet_t *packet);
 
 #ifdef __cplusplus
 }
