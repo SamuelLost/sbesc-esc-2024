@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "mpu6050.h"
 #include "sht30.h"
 #include "lora_module.h"
@@ -53,29 +54,28 @@ void app_main(void) {
         .bandwidth = BANDWIDTH_125KHZ,
         .lora_class = LORA_CLASS_C,
         .lora_window = LORA_WINDOW_5s,
+        .device_id = 0x00,
     };
 
     if (!lora_module_init(&local_data.lora_config)) {
         ESP_LOGE(TAG, "LoRa module initialization failed");
         RESTART(TAG, TIME_TO_RESTART);
-        uint8_t data[] = "Erro ao inicializar o módulo LoRa\r\n";
-        uart_write(&local_data.lora_config.uart_config, data, sizeof(data));
     }
 
     ESP_LOGI(TAG, "LoRa module initialized");
 
     // Configuração utilizada pelo sensor de distância laser
-    local_data.uart_config = (uart_t) {
-        .uart_port = UART_NUM_1,
-        .baud_rate = 115200,
-        .tx_pin = GPIO_NUM_4,
-        .rx_pin = GPIO_NUM_5,
-    };
+    // local_data.uart_config = (uart_t) {
+    //     .uart_port = UART_NUM_1,
+    //     .baud_rate = 115200,
+    //     .tx_pin = GPIO_NUM_4,
+    //     .rx_pin = GPIO_NUM_5,
+    // };
 
-    if (!uart_init(&local_data.uart_config)) {
-        ESP_LOGE(TAG, "UART initialization failed");
-        RESTART(TAG, TIME_TO_RESTART);
-    }
+    // if (!uart_init(&local_data.uart_config)) {
+    //     ESP_LOGE(TAG, "UART initialization failed");
+    //     RESTART(TAG, TIME_TO_RESTART);
+    // }
     
     // xTaskCreatePinnedToCore(vTaskAccelerometer, 
     //                         "Accelerometer Task", 
@@ -119,24 +119,18 @@ void vTaskAccelerometer(void *pvParameters) {
 void vTaskLora(void *pvParameters) {
     UNUSED(pvParameters);
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-    uint8_t data[] = "Embedded Systems Competition (ESC) 2024 - Boia para Monitoramento e Prevenção de Inundações\r\n";
-    uart_write(&local_data.uart_config, data, sizeof(data));
+    lora_packet_t packet;
+    char data[] = "Hello, LoRa!";
+    uint16_t id_broadcast = 2047;
+    prepare_lora_packet(id_broadcast, CMD_APPLICATION, data, &packet);
 
     while (true) {
-        uint8_t data[13] = {};  // Aumenta o buffer para acomodar \r\n
-        size_t bytes_read = uart_read(&local_data.uart_config, data, 11);  // Continua lendo até 11 bytes
-        if (bytes_read) {
-            // Adiciona \r\n no final dos dados recebidos
-            data[bytes_read] = '\r';
-            data[bytes_read + 1] = '\n';
-            uart_write(&local_data.uart_config, data, bytes_read + 2);  // Escreve incluindo \r\n
-
-            // Log da mensagem recebida
-            ESP_LOGI(TAG, "Received: %.*s", bytes_read, data);  // Imprime apenas os dados lidos
+        if (!lora_module_send(&local_data.lora_config, &packet)) {
+            ESP_LOGE(TAG, "Error sending packet");
+        } else {
+            ESP_LOGI(TAG, "Packet with %lu bytes sent successfully", packet.size);
         }
 
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
