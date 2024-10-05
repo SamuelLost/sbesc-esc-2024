@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include "lora_module.h"
 #include "esp_log.h"
 #include "utils.h"
@@ -32,7 +31,7 @@ void app_main(void) {
         .bandwidth = BANDWIDTH_125KHZ,
         .lora_class = LORA_CLASS_C,
         .lora_window = LORA_WINDOW_15s,
-        .device_id = 254,
+        .device_id = 1, //Default: 254
     };
 
     if (!lora_module_init(&local_data.lora_config)) {
@@ -49,34 +48,7 @@ void app_main(void) {
                             5,
                             NULL,
                             APP_CPU_NUM);
-    // lora_packet_t packet;
-    // char msg[100];
-    // uint16_t id_broadcast = 2047;
-    // packet.buffer[0] = id_broadcast & 0xFF;
-    // packet.buffer[1] = (id_broadcast >> 8) & 0xFF;
-    // while (true) {
-    //     // Recebe dados do módulo LoRa
-    //     if (lora_module_receive(&local_data.lora_config, &packet)) {
-    //         ESP_LOGI(TAG, "Received: %ld bytes", packet.size);
 
-    //         // Calcula o tamanho da mensagem
-    //         size_t message_size = packet.size - 5;  // Subtrai 3 (ID + comando) e 2 (CRC)
-
-    //         // Garante que o tamanho da mensagem seja válido e que não exceda o buffer `msg`
-    //         if (message_size > 0 && message_size < sizeof(msg)) {
-    //             // Copia a mensagem do pacote
-    //             memcpy(msg, &packet.buffer[3], message_size);
-
-    //             // Garante que a string está terminada com '\0'
-    //             // msg[message_size] = '\0';
-
-    //             // Exibe a mensagem
-    //             ESP_LOGI(TAG, "Message: %s", msg);
-    //         } else {
-    //             ESP_LOGE(TAG, "Message size invalid or too large.");
-    //         }
-    //     }
-    // }
 }
 
 // Teste com UART
@@ -84,7 +56,7 @@ void app_main(void) {
 void vTaskLora(void *pvParameters) {
     UNUSED(pvParameters);
     lora_packet_t packet;
-    // char msg[MAX_BUFFER_SIZE];
+
     while (true) {
         if (lora_module_receive(&local_data.lora_config, &packet)) {
             ESP_LOGI(TAG, "Received: %ld bytes", packet.size);
@@ -100,16 +72,8 @@ void vTaskLora(void *pvParameters) {
                 ESP_LOGI(TAG, "Message: %.*s", message_size, msg);
             }
 
-            // Garante que o tamanho da mensagem seja válido e que não exceda o buffer `msg`
-            // if (message_size > 0 && message_size < sizeof(msg)) {
-            //     // Copia a mensagem do pacote
-            //     memcpy(msg, &packet.buffer[3], message_size);
-
-            //     // Exibe a mensagem
-            //     ESP_LOGI(TAG, "Message: %.*s", message_size, msg);
-            // }
-
         }
+
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

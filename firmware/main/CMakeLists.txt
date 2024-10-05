@@ -1,4 +1,4 @@
-set(APP_VERSION 1)
+set(APP_VERSION 0)
 
 if (APP_VERSION EQUAL 1)
     idf_component_register(SRCS "main.c"
