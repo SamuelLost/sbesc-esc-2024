@@ -12,6 +12,12 @@
 - Samuel Henrique Guimarães Alencar
 - Wagner Al-Alam Guimarães (orientador)
 
+### Module LoRa
+
+- Default ID: 254
+- Master ID: 0
+- Slave ID: 1
+
 ### UART Communication
 
 - UART1 -> TX_PIN: GPIO_NUM_4, RX_PIN: GPIO_NUM_5

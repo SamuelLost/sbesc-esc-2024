@@ -9,17 +9,18 @@ const char *TAG = "LORA_MODULE";
 #define MAX_PAYLOAD_SIZE 232
 
 typedef struct {
-    uint16_t id;
-    uint32_t uid;
-    lora_class_t lora_class;
-    lora_window_t lora_window;
+    uint16_t id; // Device ID
+    uint32_t uid; // Unique ID
+    lora_class_t lora_class; // Classe de operação
+    lora_window_t lora_window; // Janela de recepção
     spread_factor_t spread_factor; // Fator de espalhamento
     coding_rate_t coding_rate; // Taxa de codificação
     bandwidth_t bandwidth; // Largura de banda
     uint8_t power_dbm; // Potência de transmissão
     uint8_t fw_version;  // Firmware version
     uint8_t fw_revision; // Firmware revision
-    uint32_t password;
+    uint8_t channel; // Canal de operação
+    uint32_t password; // Senha da rede
 } local_device_info_t;
 
 static local_device_info_t local_device_info;
@@ -27,11 +28,11 @@ static local_device_info_t local_device_info;
 /* ======================== PRIVATE FUNCTIONS ======================== */
 static inline uint16_t _calculate_crc16(uint8_t *data, uint32_t length);
 static inline bool _prepare_packet_command(uint16_t id, lora_cmd_t command, uint8_t *data, uint32_t size, lora_packet_t *packet);
-static bool _read_local_device_info(lora_module_t *lora_module, local_device_info_t *device_info);
-static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, lora_window_t lora_window);
-static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, spread_factor_t spread_factor, coding_rate_t coding_rate);
+static bool _read_local_device_info(lora_module_t *lora_module);
+static bool _config_class(lora_module_t *lora_module);
+static bool _config_bps(lora_module_t *lora_module);
 static bool _set_network_id(lora_module_t *lora_module);
-static void _print_device_info(local_device_info_t *device_info);
+static void _print_device_info();
 const char* _lora_class_to_string(lora_class_t lora_class);
 const char* _lora_window_to_string(lora_window_t lora_window);
 const char* _spread_factor_to_string(spread_factor_t spread_factor);
@@ -49,7 +50,7 @@ bool lora_module_init(lora_module_t *lora_module) {
 
     ESP_LOGI(TAG, "UART initialized");
 
-    if (!_read_local_device_info(lora_module, &local_device_info)) {
+    if (!_read_local_device_info(lora_module)) {
         return false;
     }
     
@@ -59,13 +60,13 @@ bool lora_module_init(lora_module_t *lora_module) {
         return false;
     }
 
-    if (!_config_class(lora_module, lora_module->lora_class, lora_module->lora_window)) {
+    if (!_config_class(lora_module)) {
         return false;
     }
 
     ESP_LOGI(TAG, "Class configured successfully");
 
-    if (!_config_bps(lora_module, lora_module->bandwidth, lora_module->spread_factor, lora_module->coding_rate)) {
+    if (!_config_bps(lora_module)) {
         return false;
     }
 
@@ -193,7 +194,7 @@ static inline bool _prepare_packet_command(uint16_t id, lora_cmd_t command, uint
  * @return true: Device information read successfully
  * @return false: Error reading the device information
  */
-static bool _read_local_device_info(lora_module_t *lora_module, local_device_info_t *device_info) {
+static bool _read_local_device_info(lora_module_t *lora_module) {
     uint8_t i = 0;
     uint8_t buffer_payload[MAX_BUFFER_SIZE] = {0};
 
@@ -226,11 +227,12 @@ static bool _read_local_device_info(lora_module_t *lora_module, local_device_inf
     }
 
     // Preenche o device_info com os dados recebidos
-    device_info->id = packet.buffer[0] | (packet.buffer[1] << 8);
-    device_info->uid = (packet.buffer[5] << 24) | (packet.buffer[6] << 16) | (packet.buffer[7] << 8) | packet.buffer[8];
-    device_info->password = packet.buffer[3] | (packet.buffer[4] << 8);
-    device_info->fw_version = packet.buffer[17];
-    device_info->fw_revision = packet.buffer[11];
+    local_device_info.id = packet.buffer[0] | (packet.buffer[1] << 8);
+    local_device_info.uid = (packet.buffer[5] << 24) | (packet.buffer[6] << 16) | (packet.buffer[7] << 8) | packet.buffer[8];
+    local_device_info.password = packet.buffer[3] | (packet.buffer[4] << 8);
+    local_device_info.fw_version = packet.buffer[17];
+    local_device_info.fw_revision = packet.buffer[11];
+    local_device_info.channel = packet.buffer[12];
 
     return true;
 }
@@ -243,12 +245,12 @@ static bool _read_local_device_info(lora_module_t *lora_module, local_device_inf
  * @return true: Configuration successful
  * @return false: Error configuring the LoRa module
  */
-static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, lora_window_t lora_window) {
-    if (lora_class >= LORA_CLASS_NUM_MAX) {
+static bool _config_class(lora_module_t *lora_module) {
+    if (lora_module->lora_class >= LORA_CLASS_NUM_MAX) {
         return false;
     }
 
-    if (lora_window >= LORA_WINDOW_NUM_MAX) {
+    if (lora_module->lora_window >= LORA_WINDOW_NUM_MAX) {
         return false;
     }
 
@@ -256,8 +258,8 @@ static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, l
     uint8_t buffer_payload[MAX_BUFFER_SIZE] = {0};
 
     buffer_payload[i++] = 0x00;
-    buffer_payload[i++] = lora_class;
-    buffer_payload[i++] = lora_window;
+    buffer_payload[i++] = lora_module->lora_class;
+    buffer_payload[i++] = lora_module->lora_window;
     buffer_payload[i++] = 0x00;
 
     lora_packet_t packet;
@@ -295,16 +297,16 @@ static bool _config_class(lora_module_t *lora_module, lora_class_t lora_class, l
  * @return true: Configuration successful
  * @return false: Error configuring the LoRa module
  */
-static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, spread_factor_t spread_factor, coding_rate_t coding_rate) {
-   if (bandwidth >= BANDWIDTH_NUM_MAX) {
+static bool _config_bps(lora_module_t *lora_module) {
+   if (lora_module->bandwidth >= BANDWIDTH_NUM_MAX) {
         return false;
     }
 
-    if (spread_factor >= SF_NUM_MAX) {
+    if (lora_module->spread_factor >= SF_NUM_MAX) {
         return false;
     }
 
-    if (coding_rate >= CR_NUM_MAX) {
+    if (lora_module->coding_rate >= CR_NUM_MAX) {
         return false;
     }
 
@@ -313,9 +315,9 @@ static bool _config_bps(lora_module_t *lora_module, bandwidth_t bandwidth, sprea
 
     buffer_payload[i++] = SUBCMD_WRITE;
     buffer_payload[i++] = 0x14; // Potency (20 dBm)
-    buffer_payload[i++] = bandwidth;
-    buffer_payload[i++] = spread_factor;
-    buffer_payload[i++] = coding_rate;
+    buffer_payload[i++] = lora_module->bandwidth;
+    buffer_payload[i++] = lora_module->spread_factor;
+    buffer_payload[i++] = lora_module->coding_rate;
 
     lora_packet_t packet;
     if (!_prepare_packet_command(local_device_info.id, CMD_LOCAL_WRITE, buffer_payload, i, &packet)) {
@@ -465,20 +467,21 @@ const char* _bandwidth_to_string(bandwidth_t bw) {
 }
 
 
-void _print_device_info(local_device_info_t *device_info) {
+void _print_device_info() {
     printf("==========================================\n");
     printf("            DEVICE INFORMATION            \n");
     printf("==========================================\n");
-    printf("ID:                 %d\n", device_info->id);
-    printf("UID:                %lu\n", device_info->uid);
-    printf("Password:           %lu\n", device_info->password);
-    printf("Firmware version:   %u.%u\n", device_info->fw_version, device_info->fw_revision);
-    printf("LoRa class:         %s\n", _lora_class_to_string(device_info->lora_class));
-    printf("LoRa window:        %s\n", _lora_window_to_string(device_info->lora_window));
-    printf("Spread factor:      %s\n", _spread_factor_to_string(device_info->spread_factor));
-    printf("Coding rate:        %s\n", _coding_rate_to_string(device_info->coding_rate));
-    printf("Bandwidth:          %s\n", _bandwidth_to_string(device_info->bandwidth));
-    printf("Power (dBm):        %d\n", device_info->power_dbm);
+    printf("ID:                 %d\n", local_device_info.id);
+    printf("UID:                %lu\n", local_device_info.uid);
+    printf("Password:           %lu\n", local_device_info.password);
+    printf("Firmware version:   %u.%u\n", local_device_info.fw_version, local_device_info.fw_revision);
+    printf("LoRa class:         %s\n", _lora_class_to_string(local_device_info.lora_class));
+    printf("LoRa window:        %s\n", _lora_window_to_string(local_device_info.lora_window));
+    printf("Spread factor:      %s\n", _spread_factor_to_string(local_device_info.spread_factor));
+    printf("Coding rate:        %s\n", _coding_rate_to_string(local_device_info.coding_rate));
+    printf("Bandwidth:          %s\n", _bandwidth_to_string(local_device_info.bandwidth));
+    printf("Channel (RF):       %d\n", local_device_info.channel);
+    printf("Power (dBm):        %d\n", local_device_info.power_dbm);
     printf("==========================================\n");
 }
 
