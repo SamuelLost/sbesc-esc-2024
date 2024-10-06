@@ -95,3 +95,23 @@ size_t uart_read(uart_t *uart, uint8_t *data, uint32_t size) {
 
     return bytes_read;
 }
+
+size_t uart_read_timeout(uart_t *uart, uint8_t *data, uint32_t size, int timeout_ms) {
+    if(!IS_VALID(uart) || !IS_VALID(data) || size == 0) {
+        ESP_LOGE(TAG, "Invalid parameters");
+        return 0;
+    }
+
+    if (!IS_VALID_UART(uart->uart_port)) {
+        ESP_LOGE(TAG, "Invalid UART port number");
+        return 0;
+    }
+
+    int bytes_read = uart_read_bytes(uart->uart_port, data, size, timeout_ms / portTICK_PERIOD_MS);
+    if (bytes_read < 0) {
+        ESP_LOGE(TAG, "Failed to read data from UART");
+        return 0;
+    }
+
+    return bytes_read;
+}
