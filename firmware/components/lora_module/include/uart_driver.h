@@ -52,6 +52,17 @@ size_t uart_write(uart_t *uart, uint8_t *data, uint32_t size);
  */
 size_t uart_read(uart_t *uart, uint8_t *data, uint32_t size);
 
+/**
+ * @brief Read data from the UART bus
+ * 
+ * @param uart UART configuration structure
+ * @param data Data buffer
+ * @param size Data size
+ * @param timeout Timeout in milliseconds
+ * @return size_t - Number of bytes read 
+ */
+size_t uart_read_timeout(uart_t *uart, uint8_t *data, uint32_t size, int timeout);
+
 #ifdef __cplusplus
 }
 #endif
