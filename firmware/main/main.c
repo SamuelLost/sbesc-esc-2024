@@ -2,8 +2,8 @@
 #include <string.h>
 #include "mpu6050.h"
 #include "sht30.h"
+#include "laser_sensor.h"
 #include "lora_module.h"
-#include "ir_sensor.h"
 #include "esp_log.h"
 #include "utils.h"
 #include "uart_driver.h"
@@ -13,12 +13,13 @@
 typedef struct local_data_t {
     mpu6050_t mpu6050_config;
     lora_module_t lora_config;
-    uart_t uart_config;
+    laser_sensor_t laser_config;
 } local_data_t;
 
 static local_data_t local_data = {};
 
 void vTaskAccelerometer(void *pvParameters);
+void vTaskLaserSensor(void *pvParameters);
 void vTaskLora(void *pvParameters);
 
 void app_main(void) {
@@ -34,12 +35,12 @@ void app_main(void) {
         .gyro_range = G250DPS,
     };  
 
-    // if (!mpu6050_init(&local_data.mpu6050_config)) {
-    //     ESP_LOGE(TAG, "MPU6050 initialization failed");
-    //     RESTART(TAG, TIME_TO_RESTART);
-    // }
+    if (!mpu6050_init(&local_data.mpu6050_config)) {
+        ESP_LOGE(TAG, "MPU6050 initialization failed");
+        RESTART(TAG, TIME_TO_RESTART);
+    }
 
-    // ESP_LOGI(TAG, "MPU6050 initialized\n");
+    ESP_LOGI(TAG, "MPU6050 initialized");
 
 
     local_data.lora_config = (lora_module_t){
@@ -65,25 +66,35 @@ void app_main(void) {
     ESP_LOGI(TAG, "LoRa module initialized");
 
     // Configuração utilizada pelo sensor de distância laser
-    // local_data.uart_config = (uart_t) {
-    //     .uart_port = UART_NUM_1,
-    //     .baud_rate = 115200,
-    //     .tx_pin = GPIO_NUM_4,
-    //     .rx_pin = GPIO_NUM_5,
-    // };
+    local_data.laser_config = (laser_sensor_t) {
+        .uart_port = UART_NUM_1,
+        .baud_rate = 9600,
+        .tx_pin = GPIO_NUM_4,
+        .rx_pin = GPIO_NUM_5,
+    };
 
-    // if (!uart_init(&local_data.uart_config)) {
-    //     ESP_LOGE(TAG, "UART initialization failed");
-    //     RESTART(TAG, TIME_TO_RESTART);
-    // }
+    if (!laser_sensor_init(&local_data.laser_config)) {
+        ESP_LOGE(TAG, "Laser sensor initialization failed");
+        RESTART(TAG, TIME_TO_RESTART);
+    }
+
+    ESP_LOGI(TAG, "Laser sensor initialized");
     
-    // xTaskCreatePinnedToCore(vTaskAccelerometer, 
-    //                         "Accelerometer Task", 
-    //                         2048, 
-    //                         NULL, 
-    //                         5, 
-    //                         NULL, 
-    //                         APP_CPU_NUM);
+    xTaskCreatePinnedToCore(vTaskAccelerometer, 
+                            "Accelerometer Task", 
+                            2048, 
+                            NULL, 
+                            5, 
+                            NULL, 
+                            APP_CPU_NUM);
+
+    xTaskCreatePinnedToCore(vTaskLaserSensor, 
+                            "Laser sensor Task", 
+                            2048, 
+                            NULL, 
+                            5, 
+                            NULL, 
+                            APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLora,
                             "Lora Task",
@@ -110,12 +121,10 @@ void vTaskAccelerometer(void *pvParameters) {
             ESP_LOGI("m/s²", "X: %f, Y: %f, Z: %f\n", accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
         }
 
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(1500 / portTICK_PERIOD_MS);
     }
 }
 
-// Teste com UART
-// TODO: Implementar a leitura e o envio de dados do módulo LoRa
 void vTaskLora(void *pvParameters) {
     UNUSED(pvParameters);
 
@@ -132,5 +141,17 @@ void vTaskLora(void *pvParameters) {
         }
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
+    }
+}
+
+void vTaskLaserSensor(void *pvParameters) {
+    UNUSED(pvParameters);
+
+    uint16_t distance = 0;
+
+    while (true) {
+        distance = laser_sensor_get_value(&local_data.laser_config);
+        ESP_LOGI(TAG, "Distance: %d mm", distance);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
