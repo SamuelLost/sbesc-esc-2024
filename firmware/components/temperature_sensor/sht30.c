@@ -41,19 +41,19 @@ void sht30_deinit(sht30_t *sht30) {
     i2c_deinit(&sht30->i2c);
 }
 
-float sht30_get_temperature(sht30_t *sht30) {
-    uint8_t data[6] = {0};
-    uint16_t temperature = 0;
+// float sht30_get_temperature(sht30_t *sht30) {
+//     uint8_t data[6] = {0};
+//     uint16_t temperature = 0;
 
-    if (!i2c_write(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, 0, TIMEOUT)) {
-        return 0;
-    }
+//     if (!i2c_write(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, 0, TIMEOUT)) {
+//         return 0;
+//     }
 
-    if (!i2c_read(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, data, 6, TIMEOUT)) {
-        return 0;
-    }
+//     if (!i2c_read(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, data, 6, TIMEOUT)) {
+//         return 0;
+//     }
 
-    temperature = (data[0] << 8) | data[1];
+//     temperature = (data[0] << 8) | data[1];
 
-    return -45 + 175 * (temperature / 65535.0);
-}
+//     return -45 + 175 * (temperature / 65535.0);
+// }

@@ -1,0 +1,193 @@
+diff --git a/firmware/components/accelerometer_sensor/mpu6050.c b/firmware/components/accelerometer_sensor/mpu6050.c
+index 0f64168..73b8ac9 100644
+--- a/firmware/components/accelerometer_sensor/mpu6050.c
++++ b/firmware/components/accelerometer_sensor/mpu6050.c
+@@ -23,15 +23,23 @@ bool mpu6050_init(mpu6050_t* config) {
+         return false;
+     }
+ 
+-    if (!i2c_write(&config->i2c, config->addr, MPU6050_PWR_MGMT_1, 0x00, TIMEOUT)) {
++    uint8_t buffer[2] = {MPU6050_PWR_MGMT_1, 0x00};
++
++    if (!i2c_write(&config->i2c, config->addr, buffer, sizeof(buffer), TIMEOUT)) {
+         return false;
+     }
+ 
+-    if (!i2c_write(&config->i2c, config->addr, MPU6050_ACCEL_CONFIG, config->accel_range, TIMEOUT)) {
++    buffer[0] = MPU6050_ACCEL_CONFIG;
++    buffer[1] = config->accel_range;
++
++    if (!i2c_write(&config->i2c, config->addr, buffer, sizeof(buffer), TIMEOUT)) {
+         return false;
+     }
+ 
+-    if (!i2c_write(&config->i2c, config->addr, MPU6050_GYRO_CONFIG, config->gyro_range, TIMEOUT)) {
++    buffer[0] = MPU6050_GYRO_CONFIG;
++    buffer[1] = config->gyro_range;
++
++    if (!i2c_write(&config->i2c, config->addr, buffer, sizeof(buffer), TIMEOUT)) {
+         return false;
+     }
+ 
+@@ -71,13 +79,14 @@ bool mpu6050_get_acceleration(mpu6050_t* config, acceleration_data_t* accel_data
+         return false;
+     }
+ 
+-    uint8_t buffer[6];
++    uint8_t write_buffer[] = {MPU6050_ACCEL_XOUT_H};
++    uint8_t read_buffer[6];
+ 
+-    i2c_read(&config->i2c, config->addr, MPU6050_ACCEL_XOUT_H, buffer, 6, TIMEOUT);
++    i2c_read(&config->i2c, config->addr, write_buffer, sizeof(write_buffer), read_buffer, sizeof(read_buffer), TIMEOUT);
+ 
+-    accel_data->accel_x.raw = (buffer[0] << 8) | buffer[1];
+-    accel_data->accel_y.raw = (buffer[2] << 8) | buffer[3];
+-    accel_data->accel_z.raw = (buffer[4] << 8) | buffer[5];
++    accel_data->accel_x.raw = (read_buffer[0] << 8) | read_buffer[1];
++    accel_data->accel_y.raw = (read_buffer[2] << 8) | read_buffer[3];
++    accel_data->accel_z.raw = (read_buffer[4] << 8) | read_buffer[5];
+ 
+     if (unit != ACCEL_RAW) {
+ 
+diff --git a/firmware/components/i2c_driver/i2c_driver.c b/firmware/components/i2c_driver/i2c_driver.c
+index 58f7691..873500c 100644
+--- a/firmware/components/i2c_driver/i2c_driver.c
++++ b/firmware/components/i2c_driver/i2c_driver.c
+@@ -36,15 +36,15 @@ void i2c_deinit(i2c_t *i2c) {
+     }
+ }
+ 
+-bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t data, uint32_t timeout_ms) {
++bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t *data_to_write, uint32_t write_size, uint32_t timeout_ms) {
+     if (!IS_VALID(i2c) || i2c->i2c_port >= I2C_NUM_MAX) {
+         return false;
+     }
+ 
+-    uint8_t buffer[2] = {reg_addr, data};
++    // uint8_t buffer[2] = {reg_addr, data};
+ 
+-    esp_err_t ret = i2c_master_write_to_device(i2c->i2c_port, slave_addr, buffer, 
+-        2, pdMS_TO_TICKS(timeout_ms));
++    esp_err_t ret = i2c_master_write_to_device(i2c->i2c_port, slave_addr, data_to_write, 
++        write_size, pdMS_TO_TICKS(timeout_ms));
+ 
+     if (ret != ESP_OK) {
+         return false;
+@@ -53,13 +53,13 @@ bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t data, u
+     return true;
+ }
+ 
+-bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, uint32_t length, uint32_t timeout_ms) {
++bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t *data_to_write, uint32_t write_size, uint8_t *data_read, uint32_t read_size, uint32_t timeout_ms) {
+     if (!IS_VALID(i2c) || i2c->i2c_port >= I2C_NUM_MAX) {
+         return false;
+     }
+ 
+-    esp_err_t ret = i2c_master_write_read_device(i2c->i2c_port, slave_addr, &reg_addr,
+-        1, data, length, pdMS_TO_TICKS(timeout_ms));
++    esp_err_t ret = i2c_master_write_read_device(i2c->i2c_port, slave_addr, data_to_write,
++        write_size, data_read, read_size, pdMS_TO_TICKS(timeout_ms));
+ 
+     if (ret != ESP_OK) {
+         return false;
+@@ -68,6 +68,21 @@ bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, u
+     return true;
+ }
+ 
++// bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, uint32_t length, uint32_t timeout_ms) {
++//     if (!IS_VALID(i2c) || i2c->i2c_port >= I2C_NUM_MAX) {
++//         return false;
++//     }
++
++//     esp_err_t ret = i2c_master_write_read_device(i2c->i2c_port, slave_addr, &reg_addr,
++//         1, data, length, pdMS_TO_TICKS(timeout_ms));
++
++//     if (ret != ESP_OK) {
++//         return false;
++//     }
++
++//     return true;
++// }
++
+ uint8_t i2c_read_byte(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint32_t timeout_ms) {
+     if (!IS_VALID(i2c) || i2c->i2c_port >= I2C_NUM_MAX) {
+         return 0;
+diff --git a/firmware/components/i2c_driver/include/i2c_driver.h b/firmware/components/i2c_driver/include/i2c_driver.h
+index e027f19..215d16d 100644
+--- a/firmware/components/i2c_driver/include/i2c_driver.h
++++ b/firmware/components/i2c_driver/include/i2c_driver.h
+@@ -37,27 +37,29 @@ void i2c_deinit(i2c_t *i2c);
+  * 
+  * @param i2c I2C configuration structure
+  * @param slave_addr Device I2C address
+- * @param reg_addr Register address
+- * @param data Data byte to write
++ * @param data_to_write Data to write to the device
++ * @param write_size Size of the data to write
+  * @param timeout_ms Timeout in milliseconds
+  * @return true
+  * @return false 
+  */
+-bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t data, uint32_t timeout_ms);
++bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t *data_to_write, uint32_t write_size, uint32_t timeout_ms);
+ 
+ /**
+  * @brief Read data from the I2C bus
+  * 
+  * @param i2c I2C configuration structure
+  * @param slave_addr Device I2C address
+- * @param reg_addr Register address
+- * @param data Data buffer
+- * @param length Data length
++ * @param data_to_write Data to write to the device
++ * @param write_size Size of the data to write
++ * @param data_read Data read from the device
++ * @param read_size Size of the data to read
+  * @param timeout_ms Timeout in milliseconds
+  * @return true 
+  * @return false 
+  */
+-bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, uint32_t length, uint32_t timeout_ms);
++// bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, uint32_t length, uint32_t timeout_ms);
++bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t *data_to_write, uint32_t write_size, uint8_t *data_read, uint32_t read_size, uint32_t timeout_ms);
+ 
+ /**
+  * @brief Read a single byte from the I2C bus
+diff --git a/firmware/components/temperature_sensor/sht30.c b/firmware/components/temperature_sensor/sht30.c
+index 9b3e7f3..291b7d8 100644
+--- a/firmware/components/temperature_sensor/sht30.c
++++ b/firmware/components/temperature_sensor/sht30.c
+@@ -41,19 +41,19 @@ void sht30_deinit(sht30_t *sht30) {
+     i2c_deinit(&sht30->i2c);
+ }
+ 
+-float sht30_get_temperature(sht30_t *sht30) {
+-    uint8_t data[6] = {0};
+-    uint16_t temperature = 0;
++// float sht30_get_temperature(sht30_t *sht30) {
++//     uint8_t data[6] = {0};
++//     uint16_t temperature = 0;
+ 
+-    if (!i2c_write(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, 0, TIMEOUT)) {
+-        return 0;
+-    }
++//     if (!i2c_write(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, 0, TIMEOUT)) {
++//         return 0;
++//     }
+ 
+-    if (!i2c_read(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, data, 6, TIMEOUT)) {
+-        return 0;
+-    }
++//     if (!i2c_read(&sht30->i2c, sht30->addr, SHT30_FETCH_DATA_CMD, data, 6, TIMEOUT)) {
++//         return 0;
++//     }
+ 
+-    temperature = (data[0] << 8) | data[1];
++//     temperature = (data[0] << 8) | data[1];
+ 
+-    return -45 + 175 * (temperature / 65535.0);
+-}
+\ No newline at end of file
++//     return -45 + 175 * (temperature / 65535.0);
++// }
+\ No newline at end of file

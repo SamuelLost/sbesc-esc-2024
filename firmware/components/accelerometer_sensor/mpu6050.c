@@ -23,15 +23,23 @@ bool mpu6050_init(mpu6050_t* config) {
         return false;
     }
 
-    if (!i2c_write(&config->i2c, config->addr, MPU6050_PWR_MGMT_1, 0x00, TIMEOUT)) {
+    uint8_t buffer[2] = {MPU6050_PWR_MGMT_1, 0x00};
+
+    if (!i2c_write(&config->i2c, config->addr, buffer, sizeof(buffer), TIMEOUT)) {
         return false;
     }
 
-    if (!i2c_write(&config->i2c, config->addr, MPU6050_ACCEL_CONFIG, config->accel_range, TIMEOUT)) {
+    buffer[0] = MPU6050_ACCEL_CONFIG;
+    buffer[1] = config->accel_range;
+
+    if (!i2c_write(&config->i2c, config->addr, buffer, sizeof(buffer), TIMEOUT)) {
         return false;
     }
 
-    if (!i2c_write(&config->i2c, config->addr, MPU6050_GYRO_CONFIG, config->gyro_range, TIMEOUT)) {
+    buffer[0] = MPU6050_GYRO_CONFIG;
+    buffer[1] = config->gyro_range;
+
+    if (!i2c_write(&config->i2c, config->addr, buffer, sizeof(buffer), TIMEOUT)) {
         return false;
     }
 
@@ -71,13 +79,14 @@ bool mpu6050_get_acceleration(mpu6050_t* config, acceleration_data_t* accel_data
         return false;
     }
 
-    uint8_t buffer[6];
+    uint8_t write_buffer[] = {MPU6050_ACCEL_XOUT_H};
+    uint8_t read_buffer[6];
 
-    i2c_read(&config->i2c, config->addr, MPU6050_ACCEL_XOUT_H, buffer, 6, TIMEOUT);
+    i2c_read(&config->i2c, config->addr, write_buffer, sizeof(write_buffer), read_buffer, sizeof(read_buffer), TIMEOUT);
 
-    accel_data->accel_x.raw = (buffer[0] << 8) | buffer[1];
-    accel_data->accel_y.raw = (buffer[2] << 8) | buffer[3];
-    accel_data->accel_z.raw = (buffer[4] << 8) | buffer[5];
+    accel_data->accel_x.raw = (read_buffer[0] << 8) | read_buffer[1];
+    accel_data->accel_y.raw = (read_buffer[2] << 8) | read_buffer[3];
+    accel_data->accel_z.raw = (read_buffer[4] << 8) | read_buffer[5];
 
     if (unit != ACCEL_RAW) {
 

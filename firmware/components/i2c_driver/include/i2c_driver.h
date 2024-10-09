@@ -37,27 +37,29 @@ void i2c_deinit(i2c_t *i2c);
  * 
  * @param i2c I2C configuration structure
  * @param slave_addr Device I2C address
- * @param reg_addr Register address
- * @param data Data byte to write
+ * @param data_to_write Data to write to the device
+ * @param write_size Size of the data to write
  * @param timeout_ms Timeout in milliseconds
  * @return true
  * @return false 
  */
-bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t data, uint32_t timeout_ms);
+bool i2c_write(i2c_t *i2c, uint8_t slave_addr, uint8_t *data_to_write, uint32_t write_size, uint32_t timeout_ms);
 
 /**
  * @brief Read data from the I2C bus
  * 
  * @param i2c I2C configuration structure
  * @param slave_addr Device I2C address
- * @param reg_addr Register address
- * @param data Data buffer
- * @param length Data length
+ * @param data_to_write Data to write to the device
+ * @param write_size Size of the data to write
+ * @param data_read Data read from the device
+ * @param read_size Size of the data to read
  * @param timeout_ms Timeout in milliseconds
  * @return true 
  * @return false 
  */
-bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, uint32_t length, uint32_t timeout_ms);
+// bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t reg_addr, uint8_t *data, uint32_t length, uint32_t timeout_ms);
+bool i2c_read(i2c_t *i2c, uint8_t slave_addr, uint8_t *data_to_write, uint32_t write_size, uint8_t *data_read, uint32_t read_size, uint32_t timeout_ms);
 
 /**
  * @brief Read a single byte from the I2C bus
