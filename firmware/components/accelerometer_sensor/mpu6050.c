@@ -82,7 +82,7 @@ bool mpu6050_get_acceleration(mpu6050_t* config, acceleration_data_t* accel_data
     uint8_t write_buffer[] = {MPU6050_ACCEL_XOUT_H};
     uint8_t read_buffer[6];
 
-    i2c_read(&config->i2c, config->addr, write_buffer, sizeof(write_buffer), read_buffer, sizeof(read_buffer), TIMEOUT);
+    i2c_write_read(&config->i2c, config->addr, write_buffer, sizeof(write_buffer), read_buffer, sizeof(read_buffer), TIMEOUT);
 
     accel_data->accel_x.raw = (read_buffer[0] << 8) | read_buffer[1];
     accel_data->accel_y.raw = (read_buffer[2] << 8) | read_buffer[3];
