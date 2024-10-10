@@ -1,11 +1,22 @@
 #ifndef _TEMPERATURE_SENSOR_H_
 #define _TEMPERATURE_SENSOR_H_
 
+/**
+ * @file sht30.h
+ * @author Samuel Henrique (samuelhenriq12@gmail.com)
+ * @brief SHT30 sensor driver
+ * @version 1.0
+ * @date 10-10-2024
+ * 
+ * @copyright Copyright (c) 2024 Samuel Henrique, Larissa Matos, José Batista
+ * 
+ */
+
 #include <stdint.h>
 #include "esp_err.h"
 #include "i2c_driver.h"
 
-#define SHT30_DEFAULT_ADDR 0x00 // TODO: Change this to the actual address
+#define SHT30_DEFAULT_ADDR 0x44 // Default I2C address
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +70,8 @@ bool sht30_init(sht30_t *sht30);
  */
 void sht30_deinit(sht30_t *sht30);
 
+bool sht30_measure(sht30_t *sht30, sht30_data_t *data);
+
 /**
  * @brief Get the temperature value
  * 
@@ -82,7 +95,7 @@ float sht30_get_humidity(sht30_t *sht30);
  * @return true
  * @return false
  */
-bool sht30_get_status(sht30_t *sht30);
+bool sht30_get_status(sht30_t *sht30, uint16_t *status);
 
 #ifdef __cplusplus
 }

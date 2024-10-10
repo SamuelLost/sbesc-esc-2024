@@ -14,6 +14,7 @@ typedef struct local_data_t {
     mpu6050_t mpu6050_config;
     lora_module_t lora_config;
     laser_sensor_t laser_config;
+    sht30_t sht30_config;
 } local_data_t;
 
 static local_data_t local_data = {};
@@ -21,6 +22,7 @@ static local_data_t local_data = {};
 void vTaskAccelerometer(void *pvParameters);
 void vTaskLaserSensor(void *pvParameters);
 void vTaskLora(void *pvParameters);
+void vTaskTemperature(void *pvParameters);
 
 void app_main(void) {
 
@@ -29,6 +31,7 @@ void app_main(void) {
             .i2c_port = I2C_NUM_0,
             .sda_pin = GPIO_NUM_21,
             .scl_pin = GPIO_NUM_22,
+            .i2c_freq_t = I2C_FREQ_400KH,
         },
         .addr = MPU6050_DEFAULT_ADDR,
         .accel_range = A2G,
@@ -79,6 +82,26 @@ void app_main(void) {
     }
 
     ESP_LOGI(TAG, "Laser sensor initialized");
+
+    // Configuração utilizada pelo sensor de temperatura e umidade
+    local_data.sht30_config = (sht30_t) {
+        .i2c = {
+            .i2c_port = I2C_NUM_1,
+            .sda_pin = GPIO_NUM_33,
+            .scl_pin = GPIO_NUM_32,
+            .i2c_freq_t = I2C_FREQ_100KH,
+        },
+        .addr = SHT30_DEFAULT_ADDR,
+        .mode = SHT30_SINGLE_SHOT,
+        .repeat = SHT30_HIGH,
+    };
+
+    if (!sht30_init(&local_data.sht30_config)) {
+        ESP_LOGE(TAG, "SHT30 initialization failed");
+        RESTART(TAG, TIME_TO_RESTART);
+    }
+
+    ESP_LOGI(TAG, "SHT30 initialized");
     
     xTaskCreatePinnedToCore(vTaskAccelerometer, 
                             "Accelerometer Task", 
@@ -98,6 +121,14 @@ void app_main(void) {
 
     xTaskCreatePinnedToCore(vTaskLora,
                             "Lora Task",
+                            2048,
+                            NULL,
+                            5,
+                            NULL,
+                            APP_CPU_NUM);
+
+    xTaskCreatePinnedToCore(vTaskTemperature,
+                            "Temperature Task",
                             2048,
                             NULL,
                             5,
@@ -153,5 +184,19 @@ void vTaskLaserSensor(void *pvParameters) {
         distance = laser_sensor_get_value(&local_data.laser_config);
         ESP_LOGI(TAG, "Distance: %d mm", distance);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+void vTaskTemperature(void *pvParameters) {
+    UNUSED(pvParameters);
+
+    sht30_data_t sht30_data = {};
+
+    while (true) {
+        if (sht30_measure(&local_data.sht30_config, &sht30_data)) {
+            ESP_LOGI(TAG, "Temperature: %.2f °C, Humidity: %.2f %%", sht30_data.temperature, sht30_data.humidity);
+        }
+
+        vTaskDelay(1500 / portTICK_PERIOD_MS);
     }
 }
