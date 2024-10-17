@@ -76,7 +76,7 @@ typedef enum {
  * @brief Bandwidth enumeration
  * 
  */
-typedef enum {
+typedef enum bandwidth_t {
     BANDWIDTH_125KHZ = 0x00,
     BANDWIDTH_250KHZ = 0x01,
     BANDWIDTH_500KHZ = 0x02,
@@ -104,6 +104,10 @@ typedef enum {
     SUBCMD_WRITE = 0x01, // Subcomando de escrita
     SUBCMD_READ = 0x00, // Subcomando de leitura
     CMD_APPLICATION = 0x10, // Comando de aplicação (envio de dados)
+    CMD_ACCELEROMETER = 0x11, // Comando de acelerômetro
+    CMD_TEMPERATURE = 0x12, // Comando de temperatura
+    CMD_LASER = 0x13, // Comando de sensor de distância laser
+    CMD_HEARTBEAT = 0x14, // Comando de verificação do funcionamento da rede
 } lora_cmd_t;
 
 /**
