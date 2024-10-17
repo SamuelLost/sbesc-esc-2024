@@ -369,8 +369,8 @@ static bool _set_network_id(lora_module_t *lora_module) {
     buffer_payload[i++] = 0x00; //10
     buffer_payload[i++] = 0x00; //11
     buffer_payload[i++] = 0x00; //12
-    buffer_payload[i++] = 0x00;
-    buffer_payload[i++] = 0x04;
+    // buffer_payload[i++] = 0x00;
+    // buffer_payload[i++] = 0x04;
 
     lora_packet_t packet;
     if (!_prepare_packet_command(lora_module->device_id, CMD_WRITE_RADIO_CONFIG, buffer_payload, i, &packet)) {
