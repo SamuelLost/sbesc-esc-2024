@@ -41,3 +41,27 @@ local_data.uart_config = (uart_t) {
         .rx_pin = GPIO_NUM_16,
     };
 ```
+
+## Tips FreeRTOS
+
+- How to see space available in the queue?
+
+```c
+QueueHandle_t queue_lora_packets = xQueueCreate(10, sizeof(packet_t));
+
+ESP_LOGI(TAG, "Space free: %d", uxQueueSpacesAvailable(queue_lora_packets));
+```
+
+- How to see the number of elements in the queue?
+
+```c
+QueueHandle_t queue_lora_packets = xQueueCreate(10, sizeof(packet_t));
+
+ESP_LOGI(TAG, "Number of elements: %d", uxQueueMessagesWaiting(queue_lora_packets));
+```
+
+- How to see the space available in the stack?
+
+```c
+ESP_LOGI(TAG, "Space free: %d", uxTaskGetStackHighWaterMark(NULL));
+```
