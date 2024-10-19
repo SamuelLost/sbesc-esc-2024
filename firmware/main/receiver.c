@@ -3,6 +3,7 @@
 #include "mpu6050.h"
 #include "esp_log.h"
 #include "utils.h"
+#include <string.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -51,37 +52,40 @@ void vTaskLora(void *pvParameters) {
     lora_packet_t packet;
     acceleration_data_t accel_data = {};
     uint16_t distance;
-    char device[16];
+    char device[5];
     int device_id;
     float temp, hum;
+    char msg[232];
+    size_t message_size;
 
     while (true) {
         if (lora_module_receive(&lora_config, &packet)) {
             ESP_LOGI(TAG, "Received: %ld bytes", packet.size);
 
             // Calcula o tamanho da mensagem
-            size_t message_size = packet.size - 5;  // Subtrai 3 (ID + comando) e 2 (CRC)
+            message_size = packet.size - 5;  // Subtrai 3 (ID + comando) e 2 (CRC)
             if (message_size > 0) {
-                char msg[message_size];
-                for (int i = 0; i < message_size; i++) {
-                    msg[i] = packet.buffer[i + 3];
-                }
+                memcpy(msg, &packet.buffer[3], message_size);
 
-                if (packet.buffer[2] == 0x11) {
-                    sscanf(msg, "%15[^,],%d,%f,%f,%f", device, &device_id, &accel_data.accel_x.converted, &accel_data.accel_y.converted, &accel_data.accel_z.converted);
-                    ESP_LOGI(TAG, "Acceleration received");
-                    ESP_LOGI(TAG, "Device: %s, ID: %d, X: %.2f, Y: %.2f, Z: %.2f", device, device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
-                }
-                else if (packet.buffer[2] == 0x12) {
-                    sscanf(msg, "%15[^,],%d,%f,%f", device, &device_id, &temp, &hum);
-                    ESP_LOGI(TAG, "Temperature received");
-                    ESP_LOGI(TAG, "Device: %s, ID: %d, Temperature: %.2f, Humidity: %.2f", device, device_id, temp, hum);
-                } else if (packet.buffer[2] == 0x13) {
-                    sscanf(msg, "%15[^,],%d,%hu", device, &device_id, &distance);
-                    ESP_LOGI(TAG, "Distance received");
-                    ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %hu", device, device_id, distance);
-                } else {
-                    ESP_LOGI(TAG, "Message: %.*s", message_size, msg);
+                switch (packet.buffer[2]) {
+                    case CMD_ACCELEROMETER:
+                        sscanf(msg, "%5[^,],%d,%f,%f,%f", device, &device_id, &accel_data.accel_x.converted, &accel_data.accel_y.converted, &accel_data.accel_z.converted);
+                        ESP_LOGI(TAG, "Acceleration received");
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, X: %.2f, Y: %.2f, Z: %.2f", device, device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
+                        break;
+                    case CMD_TEMPERATURE:
+                        sscanf(msg, "%5[^,],%d,%f,%f", device, &device_id, &temp, &hum);
+                        ESP_LOGI(TAG, "Temperature received");
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, Temperature: %.2f, Humidity: %.2f", device, device_id, temp, hum);
+                        break;
+                    case CMD_LASER:
+                        sscanf(msg, "%5[^,],%d,%hu", device, &device_id, &distance);
+                        ESP_LOGI(TAG, "Distance received");
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %hu", device, device_id, distance);
+                        break;
+                    default:
+                        ESP_LOGI(TAG, "Message: %.*s", (int)message_size, msg);
+                        break;
                 }
             }
 
