@@ -59,13 +59,18 @@ static sht30_t sht30_config = {
 };
 
 static QueueHandle_t queue_lora_packets;
-
 static SemaphoreHandle_t lora_mutex;
+static TaskHandle_t lora_handle = NULL;
+static TaskHandle_t laser_handle = NULL;
+static TaskHandle_t temperature_handle = NULL;
+static TaskHandle_t accelerometer_handle = NULL;
+static TaskHandle_t heartbeat_handle = NULL;
 
 void vTaskAccelerometer(void *pvParameters);
 void vTaskLaserSensor(void *pvParameters);
 void vTaskLora(void *pvParameters);
 void vTaskTemperature(void *pvParameters);
+void vTaskHeartbeat(void *pvParameters);
 
 void app_main(void) {
 
@@ -102,42 +107,55 @@ void app_main(void) {
     lora_mutex = xSemaphoreCreateMutex();
     
     xTaskCreatePinnedToCore(vTaskAccelerometer, 
-                            "Accelerometer Task", 
+                            "AccelTask", 
                             2048 * 2, 
                             NULL, 
                             5, 
-                            NULL, 
+                            &accelerometer_handle, 
                             APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLaserSensor, 
-                            "Laser sensor Task", 
+                            "LaserTask", 
                             2048*2, 
                             NULL, 
                             5, 
-                            NULL, 
+                            &laser_handle, 
                             APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLora,
-                            "Lora Task",
+                            "LoRaTask",
                             2048*2,
                             NULL,
                             5,
-                            NULL,
-                            APP_CPU_NUM);
+                            &lora_handle,
+                            PRO_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskTemperature,
-                            "Temperature Task",
+                            "TempTask",
                             2048 * 2,
                             NULL,
                             5,
+                            &temperature_handle,
+                            PRO_CPU_NUM);
+
+    xTaskCreatePinnedToCore(vTaskHeartbeat,
+                            "HeartbeatTask",
+                            2048,
                             NULL,
-                            APP_CPU_NUM);
+                            5,
+                            &heartbeat_handle,
+                            PRO_CPU_NUM);
+
+    if (!lora_handle || !laser_handle || !temperature_handle || !accelerometer_handle || !heartbeat_handle) {
+        ESP_LOGE(TAG, "Error creating tasks");
+        RESTART(TAG, TIME_TO_RESTART);
+    }
 }
 
 void vTaskAccelerometer(void *pvParameters) {
     acceleration_data_t accel_data = {};
     lora_packet_t packet;
-    char data[50];
+    char data[30];
 
     while (true) {
 
@@ -159,7 +177,7 @@ void vTaskLaserSensor(void *pvParameters) {
 
     uint16_t distance = 0, last_distance = 0;
     lora_packet_t packet;
-    char data[50];
+    char data[15];
 
     while (true) {
         distance = laser_sensor_get_value(&laser_config);
@@ -183,7 +201,7 @@ void vTaskTemperature(void *pvParameters) {
 
     sht30_data_t sht30_data = {};
     lora_packet_t packet;
-    char data[50];
+    char data[30];
 
     while (true) {
         if (sht30_measure(&sht30_config, &sht30_data)) {
@@ -219,3 +237,19 @@ void vTaskLora(void *pvParameters) {
         vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }
+
+void vTaskHeartbeat(void *pvParameters) {
+    UNUSED(pvParameters);
+    while (true) {
+        ESP_LOGI(TAG, "ESP32 - Memory free: %lu bytes", esp_get_free_heap_size());
+        ESP_LOGI(TAG, "ESP32 - Uptime: %lu seconds", esp_log_timestamp());
+        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(accelerometer_handle), uxTaskGetStackHighWaterMark(accelerometer_handle) * 4);
+        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(laser_handle), uxTaskGetStackHighWaterMark(laser_handle) * 4);
+        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(temperature_handle), uxTaskGetStackHighWaterMark(temperature_handle) * 4);
+        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(lora_handle), uxTaskGetStackHighWaterMark(lora_handle) * 4);
+        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(heartbeat_handle), uxTaskGetStackHighWaterMark(heartbeat_handle) * 4);
+
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+    }
+}
+    
