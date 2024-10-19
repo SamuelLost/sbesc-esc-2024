@@ -509,5 +509,5 @@ bool prepare_lora_packet(uint16_t id, lora_cmd_t command, char *data, lora_packe
     //     packet->buffer[count] = buffer[count];
     // }
 
-    return _prepare_packet_command(id, command, (uint8_t*)data, strlen(data)+1, packet);
+    return _prepare_packet_command(id, command, (uint8_t*)data, strlen(data), packet);
 }
