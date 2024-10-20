@@ -42,8 +42,8 @@ static lora_module_t lora_config = {
 static laser_sensor_t laser_config = {
     .uart_port = UART_NUM_1,
     .baud_rate = 9600,
-    .tx_pin = GPIO_NUM_4,
-    .rx_pin = GPIO_NUM_5,
+    .tx_pin = GPIO_NUM_4, // Fio amarelo
+    .rx_pin = GPIO_NUM_5, // Fio branco
 };
 
 static sht30_t sht30_config = {
@@ -183,9 +183,9 @@ void vTaskLaserSensor(void *pvParameters) {
         distance = laser_sensor_get_value(&laser_config);
         
         if (abs(distance - last_distance) > 10) {
-            ESP_LOGI(TAG, "Distance: %d mm", distance);
+            ESP_LOGI(TAG, "Distance: %hu mm", distance);
 
-            snprintf(data, sizeof(data), "LS,%d,%d", lora_config.device_id, distance);
+            snprintf(data, sizeof(data), "LS,%d,%hu", lora_config.device_id, distance);
             prepare_lora_packet(ID_BROADCAST, CMD_LASER, data, &packet);
 
             xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
