@@ -5,6 +5,7 @@
 #include "utils.h"
 #include <string.h>
 #include "mqtt.h"
+#include "wifi.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -43,8 +44,6 @@ void app_main(void) {
 
     mqtt_app_start();
 
-    mqtt_publish("accelerometer", "Hello from ESP32");
-
     if (!lora_module_init(&lora_config)) {
         ESP_LOGE(TAG, "LoRa module initialization failed");
         RESTART(TAG, TIME_TO_RESTART);
@@ -67,15 +66,12 @@ void vTaskLora(void *pvParameters) {
     lora_packet_t packet;
     acceleration_data_t accel_data = {};
     uint16_t distance;
-    char device[5];
+    char device[6];
     int device_id;
     float temp, hum;
     char msg[232];
     char temp_msg[30];
     size_t message_size;
-    // const char *accel_topics[] = {"acc/x", "acc/y", "acc/z"};
-    float accel_values[3];
-    float temp_hum_values[2];
 
     while (true) {
         if (lora_module_receive(&lora_config, &packet)) {
@@ -84,20 +80,18 @@ void vTaskLora(void *pvParameters) {
             // Calcula o tamanho da mensagem
             message_size = packet.size - 5;  // Subtrai 3 (ID + comando) e 2 (CRC)
             if (message_size > 0) {
+                memset(msg, 0, sizeof(msg));
                 memcpy(msg, &packet.buffer[3], message_size);
+                msg[message_size] = '\0';
 
                 switch (packet.buffer[2]) {
                     case CMD_ACCELEROMETER:
                         sscanf(msg, "%5[^,],%d,%f,%f,%f", device, &device_id, &accel_data.accel_x.converted, &accel_data.accel_y.converted, &accel_data.accel_z.converted);
                         ESP_LOGI(TAG, "Acceleration received");
                         ESP_LOGI(TAG, "Device: %s, ID: %d, X: %.2f, Y: %.2f, Z: %.2f", device, device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
-                        
-                        accel_values[0] = accel_data.accel_x.converted;
-                        accel_values[1] = accel_data.accel_y.converted;
-                        accel_values[2] = accel_data.accel_z.converted;
 
                         for (int i = 0; i < 3; i++) {
-                            snprintf(temp_msg, sizeof(temp_msg), "%.2f", accel_values[i]);
+                            snprintf(temp_msg, sizeof(temp_msg), "%.2f", ((float*)&accel_data)[i]);
                             mqtt_publish(ACCEL_TOPICS[i], temp_msg);
                         }
 
@@ -107,11 +101,8 @@ void vTaskLora(void *pvParameters) {
                         ESP_LOGI(TAG, "Temperature received");
                         ESP_LOGI(TAG, "Device: %s, ID: %d, Temperature: %.2f, Humidity: %.2f", device, device_id, temp, hum);
 
-                        temp_hum_values[0] = temp;
-                        temp_hum_values[1] = hum;
-
                         for (int i = 0; i < 2; i++) {
-                            snprintf(temp_msg, sizeof(temp_msg), "%.2f", temp_hum_values[i]);
+                            snprintf(temp_msg, sizeof(temp_msg), "%.2f", (i == 0) ? temp : hum);
                             mqtt_publish(TEMP_HUM_TOPIC[i], temp_msg);
                         }
 
@@ -123,7 +114,7 @@ void vTaskLora(void *pvParameters) {
 
                         snprintf(temp_msg, sizeof(temp_msg), "%hu", distance);
                         mqtt_publish(LASER_TOPIC, temp_msg);
-                        
+
                         break;
                     default:
                         ESP_LOGI(TAG, "Message: %.*s", (int)message_size, msg);
