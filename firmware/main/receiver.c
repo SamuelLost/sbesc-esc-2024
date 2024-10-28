@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 
 #define TAG "MAIN"
+#define LENGTH_PIPE 72
 
 const char *ACCEL_TOPICS[] = {"acc/x", "acc/y", "acc/z"};
 const char *TEMP_HUM_TOPIC[] = {"temperature", "humidity"};
@@ -109,6 +110,7 @@ void vTaskLora(void *pvParameters) {
                         break;
                     case CMD_LASER:
                         sscanf(msg, "%5[^,],%d,%hu", device, &device_id, &distance);
+                        distance = distance - LENGTH_PIPE;
                         ESP_LOGI(TAG, "Distance received");
                         ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %hu", device, device_id, distance);
 
