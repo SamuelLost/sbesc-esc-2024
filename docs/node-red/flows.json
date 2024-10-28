@@ -1,0 +1,348 @@
+[
+    {
+        "id": "8c28d107711c05cd",
+        "type": "tab",
+        "label": "Fluxo 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "4e0a8e18dcc42dae",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "Temperatura",
+        "group": "704b749db029c10b",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Temperatura",
+        "label": "ºC",
+        "format": "{{value}}",
+        "min": "-40",
+        "max": "125",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 570,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "e19fa1727279ec07",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "",
+        "topic": "temperature",
+        "qos": "2",
+        "datatype": "utf8",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 230,
+        "y": 220,
+        "wires": [
+            [
+                "4e0a8e18dcc42dae"
+            ]
+        ]
+    },
+    {
+        "id": "e3489594e4f2f296",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "humidity",
+        "topic": "humidity",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 220,
+        "y": 300,
+        "wires": [
+            [
+                "b7d5c4ecce856033"
+            ]
+        ]
+    },
+    {
+        "id": "b7d5c4ecce856033",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "Umidade",
+        "group": "bb71e117e59e5b49",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Umidade",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 580,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "d55af3c5d89df5be",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "acc/x",
+        "topic": "acc/x",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 210,
+        "y": 360,
+        "wires": [
+            [
+                "c4294d6c0a1981af"
+            ]
+        ]
+    },
+    {
+        "id": "c4294d6c0a1981af",
+        "type": "ui_chart",
+        "z": "8c28d107711c05cd",
+        "name": "Gŕaficos das acelerações",
+        "group": "74f382c1d5c39979",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "label": "Gŕaficos das acelerações",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "ihhh",
+        "dot": false,
+        "ymin": "-10",
+        "ymax": "10",
+        "removeOlder": "10",
+        "removeOlderPoints": "",
+        "removeOlderUnit": "60",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 530,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "bfe9a4f39c912cbb",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "acc/y",
+        "topic": "acc/y",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 210,
+        "y": 420,
+        "wires": [
+            [
+                "c4294d6c0a1981af"
+            ]
+        ]
+    },
+    {
+        "id": "6174fdaf1d73428c",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "acc/z",
+        "topic": "acc/z",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 210,
+        "y": 480,
+        "wires": [
+            [
+                "c4294d6c0a1981af"
+            ]
+        ]
+    },
+    {
+        "id": "6a88a9583bcad5a1",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "distance",
+        "topic": "distance",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 220,
+        "y": 560,
+        "wires": [
+            [
+                "d9b5902504dd6e6a"
+            ]
+        ]
+    },
+    {
+        "id": "d9b5902504dd6e6a",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "Nível da água",
+        "group": "af6a906721c87660",
+        "order": 1,
+        "width": "10",
+        "height": "6",
+        "gtype": "wave",
+        "title": "Nível da água",
+        "label": "mm",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "2000",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 520,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "704b749db029c10b",
+        "type": "ui_group",
+        "name": "Temperatura",
+        "tab": "619c1f7e707e8ae6",
+        "order": 1,
+        "disp": false,
+        "width": 10,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "c455ae49eadb2021",
+        "type": "mqtt-broker",
+        "name": "Mosquitto",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "bb71e117e59e5b49",
+        "type": "ui_group",
+        "name": "Umidade",
+        "tab": "619c1f7e707e8ae6",
+        "order": 2,
+        "disp": false,
+        "width": 10,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "74f382c1d5c39979",
+        "type": "ui_group",
+        "name": "Group 3",
+        "tab": "619c1f7e707e8ae6",
+        "order": 3,
+        "disp": false,
+        "width": "20",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "af6a906721c87660",
+        "type": "ui_group",
+        "name": "Group 4",
+        "tab": "619c1f7e707e8ae6",
+        "order": 4,
+        "disp": false,
+        "width": "10",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "619c1f7e707e8ae6",
+        "type": "ui_tab",
+        "name": "ESC",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]

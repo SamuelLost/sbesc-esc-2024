@@ -65,3 +65,63 @@ ESP_LOGI(TAG, "Number of elements: %d", uxQueueMessagesWaiting(queue_lora_packet
 ```c
 ESP_LOGI(TAG, "Space free: %d", uxTaskGetStackHighWaterMark(NULL));
 ```
+
+## Sugestões de tarefas
+
+Para organizar as tasks do seu código em uma ESP32 de maneira eficiente, aproveitando os dois núcleos, o objetivo é balancear a carga de processamento e garantir que tarefas críticas como a comunicação via LoRa e a coleta de dados dos sensores não sejam afetadas por sobrecarga. Abaixo está uma sugestão de organização:
+
+### 1. **Core 0 (Pro CPU) – Tarefas de Sistema e Comunicação**
+   
+Este núcleo deve lidar com tarefas mais críticas e aquelas que exigem menor latência, como a comunicação via LoRa e o monitoramento do sistema, uma vez que o Wi-Fi e o Bluetooth também rodam nesse núcleo.
+
+- **`vTaskLora`**: Esta task é responsável por enviar pacotes via LoRa. Como a comunicação é crítica e precisa de acesso ao hardware, deve rodar no **Core 0**. Além disso, como utiliza um mutex (para proteger o acesso ao módulo LoRa), é uma boa prática mantê-la neste núcleo para evitar conflitos com tarefas mais pesadas.
+  
+- **`vTaskHeartbeat`**: Esta task monitora a saúde do sistema e o uso da memória, além de enviar status via LoRa. Como é uma task de baixa prioridade e precisa de acesso a outras tasks e à fila de LoRa, ela também pode rodar no **Core 0**, pois não demanda muito processamento.
+
+### 2. **Core 1 (App CPU) – Tarefas de Processamento de Sensores**
+
+No **Core 1**, você pode colocar as tasks que fazem a leitura dos sensores e que não têm uma demanda crítica de tempo real, mas requerem processamento mais intensivo. Estas tasks fazem leituras periódicas e podem ser executadas de forma paralela às tarefas críticas de comunicação.
+
+- **`vTaskAccelerometer`**: Como o acelerômetro tem leituras frequentes (a cada 4 segundos) e envolve alguma formatação de dados antes de enviá-los via LoRa, é melhor deixá-la no **Core 1** para evitar interferência nas tasks críticas de comunicação.
+
+- **`vTaskLaserSensor`**: Esta task também faz leituras frequentes (a cada 3 segundos) e, como envolve cálculos (diferença entre distâncias) e formatação de pacotes, deve rodar no **Core 1** para liberar o **Core 0** de processamento extra.
+
+- **`vTaskTemperature`**: Como a temperatura e a umidade são medidas com um intervalo maior (10 segundos), e a task não é tão intensiva em processamento, pode rodar no **Core 1**, junto com as outras tasks de sensor.
+
+### 3. **Resumo da Alocação por Núcleo**
+
+#### **Core 0 (Pro CPU)**:
+
+- **`vTaskLora`**: Comunicação LoRa (alta prioridade).
+- **`vTaskHeartbeat`**: Monitoramento de sistema (baixa prioridade, não crítica).
+
+#### **Core 1 (App CPU)**:
+
+- **`vTaskAccelerometer`**: Leitura do acelerômetro e envio via LoRa.
+- **`vTaskLaserSensor`**: Leitura do sensor de distância e envio via LoRa.
+- **`vTaskTemperature`**: Leitura da temperatura e umidade e envio via LoRa.
+
+### 4. **Prioridades das Tasks**
+
+Você pode ajustar as prioridades das tasks para garantir que as mais críticas, como a comunicação via LoRa, tenham maior prioridade de execução:
+
+- **`vTaskLora`**: Alta prioridade (por exemplo, `configMAX_PRIORITIES - 1`).
+- **`vTaskHeartbeat`**: Baixa prioridade (pode ser `tskIDLE_PRIORITY + 1`).
+- **Tasks de Sensores**: Prioridade média (pode ser entre `tskIDLE_PRIORITY + 2` e `tskIDLE_PRIORITY + 3`).
+
+### 5. **Exemplo de Criação das Tasks**
+
+Aqui está um exemplo de como você poderia criar essas tasks com a função `xTaskCreatePinnedToCore()` para fixá-las no núcleo correto:
+
+```c
+xTaskCreatePinnedToCore(vTaskLora, "LoRa Task", 2048, NULL, configMAX_PRIORITIES - 1, &lora_handle, 0);    // Core 0
+xTaskCreatePinnedToCore(vTaskHeartbeat, "Heartbeat Task", 2048, NULL, tskIDLE_PRIORITY + 1, &heartbeat_handle, 0);    // Core 0
+
+xTaskCreatePinnedToCore(vTaskAccelerometer, "Accelerometer Task", 2048, NULL, tskIDLE_PRIORITY + 3, &accelerometer_handle, 1);    // Core 1
+xTaskCreatePinnedToCore(vTaskLaserSensor, "Laser Task", 2048, NULL, tskIDLE_PRIORITY + 2, &laser_handle, 1);    // Core 1
+xTaskCreatePinnedToCore(vTaskTemperature, "Temperature Task", 2048, NULL, tskIDLE_PRIORITY + 2, &temperature_handle, 1);    // Core 1
+```
+
+### Conclusão
+
+Organizar as tasks dessa maneira otimiza o uso dos dois núcleos da ESP32, separando tarefas de comunicação crítica no **Core 0** e tarefas de processamento de sensores no **Core 1**, garantindo um sistema mais eficiente e responsivo.
