@@ -153,17 +153,28 @@ void app_main(void) {
 }
 
 void vTaskAccelerometer(void *pvParameters) {
-    acceleration_data_t accel_data = {};
+    // acceleration_data_t accel_data = {};
+    // gyroscope_data_t gyro_data = {};
+    angles_data_t angles_data = {};
     lora_packet_t packet;
     char data[30];
 
     while (true) {
 
-        if (mpu6050_get_acceleration(&mpu6050_config, &accel_data, ACCEL_MPS2)) {
-            ESP_LOGI("m/s²", "X: %.2f, Y: %.2f, Z: %.2f", accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
+        // if (mpu6050_get_acceleration(&mpu6050_config, &accel_data, ACCEL_MPS2)) {
+        //     ESP_LOGI("m/s²", "X: %.2f, Y: %.2f, Z: %.2f", accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
 
-            snprintf(data, sizeof(data), "ACC,%d,%.2f,%.2f,%.2f", lora_config.device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
-            prepare_lora_packet(ID_BROADCAST, CMD_ACCELEROMETER, data, &packet); 
+        //     snprintf(data, sizeof(data), "ACC,%d,%.2f,%.2f,%.2f", lora_config.device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
+        //     prepare_lora_packet(ID_BROADCAST, CMD_ACCELEROMETER, data, &packet); 
+
+        //     xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
+        // }
+
+        if (mpu6050_get_angles(&mpu6050_config, &angles_data, -1)) {
+            ESP_LOGI(TAG, "ACC Pitch: %.2f, ACC Roll: %.2f", angles_data.accel.pitch, angles_data.accel.roll);
+            
+            snprintf(data, sizeof(data), "ACC,%d,%.2f,%.2f", lora_config.device_id, angles_data.accel.pitch, angles_data.accel.roll);
+            prepare_lora_packet(ID_BROADCAST, CMD_ACCELEROMETER, data, &packet);
 
             xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
         }
