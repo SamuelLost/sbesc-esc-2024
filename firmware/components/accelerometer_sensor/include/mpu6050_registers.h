@@ -13,6 +13,12 @@
 #define MPU6050_ACCEL_YOUT_L    0x3E
 #define MPU6050_ACCEL_ZOUT_H    0x3F
 #define MPU6050_ACCEL_ZOUT_L    0x40
+#define MPU6050_GYRO_XOUT_H     0x43
+#define MPU6050_GYRO_XOUT_L     0x44
+#define MPU6050_GYRO_YOUT_H     0x45
+#define MPU6050_GYRO_YOUT_L     0x46
+#define MPU6050_GYRO_ZOUT_H     0x47
+#define MPU6050_GYRO_ZOUT_L     0x48
 
 
 #endif // _MPU6050_REGISTERS_H_

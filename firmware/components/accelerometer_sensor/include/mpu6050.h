@@ -25,11 +25,15 @@ typedef struct {
     accel_axis_t accel_z;
 } acceleration_data_t;
 
+typedef union {
+    int16_t raw;
+    float converted;
+} gyro_axis_t;
 // Gyroscope sensor data structure
 typedef struct {
-    int16_t gyro_x;
-    int16_t gyro_y;
-    int16_t gyro_z;
+    gyro_axis_t gyro_x;
+    gyro_axis_t gyro_y;
+    gyro_axis_t gyro_z;
 } gyroscope_data_t;
 
 typedef enum {
@@ -49,8 +53,21 @@ typedef enum {
 typedef enum {
     ACCEL_RAW, // raw data
     ACCEL_MPS2, // meters per second squared
-    ACCEL_G // g-force
+    ACCEL_G, // g-force
+    GYRO_RAW, // raw data
+    GYRO_DPS // degrees per second
 } unit_measurement_t;
+
+typedef struct {
+    float pitch;
+    float roll;
+} angle_pair_t;
+
+typedef struct {
+    angle_pair_t gyro;
+    angle_pair_t accel;
+    angle_pair_t complementary_filter;
+} angles_data_t;
 
 // MPU6050 configuration structure
 typedef struct {
@@ -97,8 +114,19 @@ bool mpu6050_get_acceleration(mpu6050_t *config, acceleration_data_t *accel_data
  * @param gyro_data 
  * @return bool 
  */
-bool mpu6050_get_gyroscope(mpu6050_t *config, gyroscope_data_t *gyro_data);
+bool mpu6050_get_gyroscope(mpu6050_t *config, gyroscope_data_t *gyro_data, unit_measurement_t unit);
 
+/**
+ * @brief Get the angles data
+ * 
+ * @param config mpu6050_t configuration structure
+ * @param angles_data angles_data_t structure to store the angles data
+ * @param delta_time Time interval between measurements. If negative, the function will not use the gyroscope data
+ *          to calculate the angles. If positive, the function will use the complementary filter to calculate the angles.
+ *          Is recommended to use a value between 0.01 and 0.1.
+ * @return bool 
+ */
+bool mpu6050_get_angles(mpu6050_t *config, angles_data_t *angles_data, float delta_time);
 
 #ifdef __cplusplus
 }

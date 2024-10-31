@@ -125,3 +125,67 @@ xTaskCreatePinnedToCore(vTaskTemperature, "Temperature Task", 2048, NULL, tskIDL
 ### Conclusão
 
 Organizar as tasks dessa maneira otimiza o uso dos dois núcleos da ESP32, separando tarefas de comunicação crítica no **Core 0** e tarefas de processamento de sensores no **Core 1**, garantindo um sistema mais eficiente e responsivo.
+
+### Acelerômetro
+
+Para calcular os ângulos de *roll* e *pitch* usando os dados do acelerômetro e do giroscópio do MPU6050, o ideal é combinar as leituras de ambos para obter uma estimativa mais precisa e estável. Abaixo, vou detalhar o método mais comum para isso, usando a *fusão sensorial* (*sensor fusion*), que combina a resposta rápida do giroscópio com a estabilidade do acelerômetro.
+
+### 1. Obtenha os Dados do Acelerômetro e Giroscópio
+
+Para cada eixo:
+
+- Acelerômetro: `Ax`, `Ay`, `Az`
+- Giroscópio: `Gx`, `Gy`, `Gz`
+
+As unidades dos dados devem ser:
+
+- Acelerômetro em *g* (gravidade, que pode ser lida diretamente como $m/s^2$ em alguns casos).
+- Giroscópio em °/s (graus por segundo).
+
+### 2. Cálculo de Roll e Pitch pelo Acelerômetro
+
+Os ângulos calculados apenas pelo acelerômetro são mais estáveis em baixas frequências (evitam drift), mas são sensíveis a movimentos rápidos e vibrações. A partir dos dados do acelerômetro:
+
+1. **Pitch** ($\theta$):
+   $$
+   \theta = \arctan\left(\frac{-Ax}{\sqrt{Ay^2 + Az^2}}\right) \cdot \frac{180}{\pi}
+   $$
+
+2. **Roll** ($\phi$):
+   $$
+   \phi = \arctan\left(\frac{Ay}{\sqrt{Ax^2 + Az^2}}\right) \cdot \frac{180}{\pi}
+   $$
+
+Essas fórmulas assumem que o sensor está em um ambiente onde a gravidade é a única aceleração significativa (sem movimentos bruscos ou vibrações).
+
+### 3. Integração dos Dados do Giroscópio
+
+Os dados do giroscópio medem a taxa de rotação. Para calcular o ângulo a partir dessa taxa, é necessário integrar o valor ao longo do tempo:
+
+1. **Roll e Pitch a partir do giroscópio**:
+   - A cada intervalo de tempo \($dt$\), faça:
+     - **Pitch**: $\theta_{gyro} += Gy \times dt$
+     - **Roll**: $\phi_{gyro} += Gx \times dt$
+
+Esses valores vão acumular drift ao longo do tempo, por isso usamos a fusão sensorial para corrigir esse desvio.
+
+### 4. Fusão Sensorial (Complementary Filter)
+
+A fusão sensorial combina os ângulos do acelerômetro e do giroscópio para obter uma estimativa mais precisa:
+
+1. Escolha uma constante de filtro, geralmente entre 0,9 e 0,98 (por exemplo, 0,98 para dar mais peso ao giroscópio).
+2. Aplique a fórmula de fusão a cada novo cálculo:
+   - **Pitch filtrado**:
+     $$ \theta = \alpha \cdot (\theta + Gy \times dt) + (1 - \alpha) \cdot \theta_{acc}$$
+   - **Roll filtrado**:
+     $$\phi = \alpha \cdot (\phi + Gx \times dt) + (1 - \alpha) \cdot \phi_{acc}$$
+
+Onde:
+
+- \($\alpha$\) é o peso do giroscópio na fusão (por exemplo, 0,98).
+- \($\theta_{acc}$\) e \(\phi_{acc}\) são os ângulos calculados pelo acelerômetro.
+- \($dt$\) é o intervalo de tempo entre cada amostra.
+
+### Implementação Geral
+
+Com isso, você deve conseguir uma estimativa mais precisa e menos sujeita ao desvio.

@@ -17,6 +17,12 @@ extern "C" {
 /** G-force constant */
 #define G_FORCE 9.81
 
+/** PI constant */
+#define PI 3.14159265359
+
+/** Convert degrees to radians */
+#define RAD_TO_DEG (180.0 / PI)
+
 /** Time to restart the ESP32 */
 #define TIME_TO_RESTART 7
 
