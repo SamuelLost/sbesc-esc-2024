@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "mqtt.h"
 
-#define CONFIG_MQTT_BROKER "mqtt://192.168.0.5:1883"
+#define CONFIG_MQTT_BROKER "mqtt://192.168.1.11:1883"
 // #define CONFIG_MQTT_BROKER "mqtt://mqtt.eclipseprojects.io"
 
 esp_mqtt_client_handle_t client;

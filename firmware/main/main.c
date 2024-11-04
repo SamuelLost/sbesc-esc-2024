@@ -142,7 +142,7 @@ void app_main(void) {
                             "HeartbeatTask",
                             2048,
                             NULL,
-                            5,
+                            tskIDLE_PRIORITY + 1,
                             &heartbeat_handle,
                             PRO_CPU_NUM);
 
@@ -251,16 +251,40 @@ void vTaskLora(void *pvParameters) {
 
 void vTaskHeartbeat(void *pvParameters) {
     UNUSED(pvParameters);
-    while (true) {
-        ESP_LOGI(TAG, "ESP32 - Memory free: %lu bytes", esp_get_free_heap_size());
-        ESP_LOGI(TAG, "ESP32 - Uptime: %lu seconds", esp_log_timestamp());
-        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(accelerometer_handle), uxTaskGetStackHighWaterMark(accelerometer_handle) * 4);
-        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(laser_handle), uxTaskGetStackHighWaterMark(laser_handle) * 4);
-        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(temperature_handle), uxTaskGetStackHighWaterMark(temperature_handle) * 4);
-        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(lora_handle), uxTaskGetStackHighWaterMark(lora_handle) * 4);
-        ESP_LOGI(TAG, "%s: Stack free: %d bytes", pcTaskGetName(heartbeat_handle), uxTaskGetStackHighWaterMark(heartbeat_handle) * 4);
+    UBaseType_t task_acc;
+    UBaseType_t task_laser;
+    UBaseType_t task_temp;
+    UBaseType_t task_lora;
+    UBaseType_t task_heartbeat;
+    uint32_t uptime = 0;
+    uint32_t heap = 0;
+    char data[60];
+    lora_packet_t packet;
+    bool mpu6050_status = false;
+    bool laser_status = false;
+    bool sht30_status = false;
+    uint16_t status = 0;
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+    while (true) {
+        task_acc = uxTaskGetStackHighWaterMark(accelerometer_handle) * 4; // Stack size in bytes
+        task_laser = uxTaskGetStackHighWaterMark(laser_handle) * 4;
+        task_temp = uxTaskGetStackHighWaterMark(temperature_handle) * 4;
+        task_lora = uxTaskGetStackHighWaterMark(lora_handle) * 4;
+        task_heartbeat = uxTaskGetStackHighWaterMark(heartbeat_handle) * 4;
+        uptime = esp_log_timestamp() / 1000; // Uptime in seconds
+        // heap = esp_get_free_heap_size(); // Free heap memory in bytes
+        mpu6050_status = mpu6050_is_alive(&mpu6050_config);
+        laser_status = laser_sensor_get_value(&laser_config);
+        sht30_status = sht30_get_status(&sht30_config, &status);
+
+        snprintf(data, sizeof(data), "HB,%d,%d,%d,%d,%d,%d,%lu,%d,%d,%d", lora_config.device_id, task_acc, task_laser, task_temp, 
+            task_lora, task_heartbeat, uptime, mpu6050_status, laser_status, sht30_status);
+        prepare_lora_packet(ID_BROADCAST, CMD_HEARTBEAT, data, &packet);
+
+        xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
+        
+        vTaskDelay(pdMS_TO_TICKS(15000));
     }
 }
     

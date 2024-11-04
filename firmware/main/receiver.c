@@ -14,6 +14,7 @@
 #define LENGTH_PIPE 72
 
 const char *ACCEL_TOPICS[] = {"acc/x", "acc/y", "acc/z"};
+const char *ANGLE_TOPICS[] = {"angle/pitch", "angle/roll"};
 const char *TEMP_HUM_TOPIC[] = {"temperature", "humidity"};
 const char *LASER_TOPIC = "distance";
 
@@ -66,6 +67,7 @@ void vTaskLora(void *pvParameters) {
     UNUSED(pvParameters);
     lora_packet_t packet;
     acceleration_data_t accel_data = {};
+    angles_data_t angles_data = {};
     uint16_t distance;
     char device[6];
     int device_id;
@@ -73,6 +75,16 @@ void vTaskLora(void *pvParameters) {
     char msg[232];
     char temp_msg[30];
     size_t message_size;
+
+    char task_acc[5];
+    char task_laser[5];
+    char task_temp[5];
+    char task_lora[5];
+    char task_heartbeat[5];
+    char uptime[5];
+    char mpu6050_status[2];
+    char laser_status[2];
+    char sht30_status[2];
 
     while (true) {
         if (lora_module_receive(&lora_config, &packet)) {
@@ -87,13 +99,21 @@ void vTaskLora(void *pvParameters) {
 
                 switch (packet.buffer[2]) {
                     case CMD_ACCELEROMETER:
-                        sscanf(msg, "%5[^,],%d,%f,%f,%f", device, &device_id, &accel_data.accel_x.converted, &accel_data.accel_y.converted, &accel_data.accel_z.converted);
-                        ESP_LOGI(TAG, "Acceleration received");
-                        ESP_LOGI(TAG, "Device: %s, ID: %d, X: %.2f, Y: %.2f, Z: %.2f", device, device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
+                        // sscanf(msg, "%5[^,],%d,%f,%f,%f", device, &device_id, &accel_data.accel_x.converted, &accel_data.accel_y.converted, &accel_data.accel_z.converted);
+                        // ESP_LOGI(TAG, "Acceleration received");
+                        // ESP_LOGI(TAG, "Device: %s, ID: %d, X: %.2f, Y: %.2f, Z: %.2f", device, device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
+                        // for (int i = 0; i < 3; i++) {
+                        //     snprintf(temp_msg, sizeof(temp_msg), "%.2f", ((float*)&accel_data)[i]);
+                        //     mqtt_publish(ACCEL_TOPICS[i], temp_msg);
+                        // }
 
-                        for (int i = 0; i < 3; i++) {
-                            snprintf(temp_msg, sizeof(temp_msg), "%.2f", ((float*)&accel_data)[i]);
-                            mqtt_publish(ACCEL_TOPICS[i], temp_msg);
+                        sscanf(msg, "%5[^,],%d,%f,%f", device, &device_id, &angles_data.accel.pitch, &angles_data.accel.roll);
+                        ESP_LOGI(TAG, "Angles received");
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, Pitch: %.2f, Roll: %.2f", device, device_id, angles_data.accel.pitch, angles_data.accel.roll);
+
+                        for (int i = 0; i < 2; i++) {
+                            snprintf(temp_msg, sizeof(temp_msg), "%.2f", ((float*)&angles_data.accel)[i]);
+                            mqtt_publish(ANGLE_TOPICS[i], temp_msg);
                         }
 
                         break;
@@ -110,13 +130,37 @@ void vTaskLora(void *pvParameters) {
                         break;
                     case CMD_LASER:
                         sscanf(msg, "%5[^,],%d,%hu", device, &device_id, &distance);
-                        distance = distance - LENGTH_PIPE;
+                        if (distance > LENGTH_PIPE) distance = distance - LENGTH_PIPE;
                         ESP_LOGI(TAG, "Distance received");
                         ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %hu", device, device_id, distance);
 
                         snprintf(temp_msg, sizeof(temp_msg), "%hu", distance);
                         mqtt_publish(LASER_TOPIC, temp_msg);
 
+                        break;
+                    case CMD_HEARTBEAT:
+                        ESP_LOGI(TAG, "Heartbeat received: %.*s", (int)message_size, msg);
+                        // snprintf(data, sizeof(data), "HB,%d,%d,%d,%d,%d,%d,%lu,%lu,%d,%d,%d", lora_config.device_id, task_acc, task_laser, task_temp, 
+                                // task_lora, task_heartbeat, heap, uptime, mpu6050_status, laser_status, sht30_status);
+                        
+                        sscanf(msg, "%5[^,],%d,%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%1[^,],%1[^,],%1[^,]", device, &device_id, task_acc, task_laser, task_temp, 
+                            task_lora, task_heartbeat, uptime, mpu6050_status, laser_status, sht30_status);
+                        ESP_LOGI(TAG, "Heartbeat received");
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, Task Acc: %s, Task Laser: %s, Task Temp: %s, Task Lora: %s, Task Heartbeat: %s, Uptime: %s, MPU6050: %s, Laser: %s, SHT30: %s", 
+                            device, device_id, task_acc, task_laser, task_temp, task_lora, task_heartbeat, uptime, mpu6050_status, laser_status, sht30_status);
+                        // ESP_LOGI(TAG, "%s", mpu6050_status);
+                        mqtt_publish("tasks/acc", task_acc);
+                        mqtt_publish("tasks/laser", task_laser);
+                        mqtt_publish("tasks/temp", task_temp);
+                        mqtt_publish("tasks/lora", task_lora);
+                        mqtt_publish("tasks/heartbeat", task_heartbeat);
+
+                        mqtt_publish("status/uptime", uptime);
+                        mqtt_publish("status/mpu6050", mpu6050_status);
+                        mqtt_publish("status/laser", laser_status);
+                        mqtt_publish("status/sht30", sht30_status);
+
+                            
                         break;
                     default:
                         ESP_LOGI(TAG, "Message: %.*s", (int)message_size, msg);
