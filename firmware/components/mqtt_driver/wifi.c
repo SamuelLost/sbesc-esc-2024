@@ -2,8 +2,8 @@
 
 #define TAG_WIFI "WIFI"
 #define CONFIG_MAXIMUM_RETRY 5
-#define CONFIG_WIFI_SSID "brisa-3305823"
-#define CONFIG_WIFI_PASSWORD "xqq5e010"
+#define CONFIG_WIFI_SSID "brisa-182118"
+#define CONFIG_WIFI_PASSWORD "1yzn6sri"
 
 #define INFO_AP "SSID: " CONFIG_WIFI_SSID ", password: " CONFIG_WIFI_PASSWORD
 
@@ -87,6 +87,7 @@ void wifi_init_sta() {
         ESP_LOGI(TAG_WIFI, "Connected to AP %s", INFO_AP);
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGI(TAG_WIFI, "Failed to connect to %s", INFO_AP);
+        RESTART(TAG_WIFI, TIME_TO_RESTART);
     } else {
         ESP_LOGE(TAG_WIFI, "UNEXPECTED EVENT");
     }

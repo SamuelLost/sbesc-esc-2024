@@ -183,7 +183,7 @@ A fusão sensorial combina os ângulos do acelerômetro e do giroscópio para ob
 Onde:
 
 - \($\alpha$\) é o peso do giroscópio na fusão (por exemplo, 0,98).
-- \($\theta_{acc}$\) e \(\phi_{acc}\) são os ângulos calculados pelo acelerômetro.
+- \($\theta_{acc}$\) e \($\phi_{acc}$\) são os ângulos calculados pelo acelerômetro.
 - \($dt$\) é o intervalo de tempo entre cada amostra.
 
 ### Implementação Geral
