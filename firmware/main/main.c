@@ -61,6 +61,9 @@ static sht30_t sht30_config = {
 
 static QueueHandle_t queue_lora_packets;
 static SemaphoreHandle_t lora_mutex;
+static SemaphoreHandle_t laser_mutex;
+static SemaphoreHandle_t sht30_mutex;
+static SemaphoreHandle_t mpu6050_mutex;
 static TaskHandle_t lora_handle = NULL;
 static TaskHandle_t laser_handle = NULL;
 static TaskHandle_t temperature_handle = NULL;
@@ -106,38 +109,46 @@ void app_main(void) {
     queue_lora_packets = xQueueCreate(10, sizeof(lora_packet_t));
 
     lora_mutex = xSemaphoreCreateMutex();
-    
+    laser_mutex = xSemaphoreCreateMutex();
+    sht30_mutex = xSemaphoreCreateMutex();
+    mpu6050_mutex = xSemaphoreCreateMutex();
+
+    if (!queue_lora_packets || !lora_mutex || !laser_mutex || !sht30_mutex || !mpu6050_mutex) {
+        ESP_LOGE(TAG, "Error creating queue or mutex");
+        RESTART(TAG, TIME_TO_RESTART);
+    }
+
     xTaskCreatePinnedToCore(vTaskAccelerometer, 
                             "AccelTask", 
                             2048 * 2, 
                             NULL, 
-                            5, 
+                            tskIDLE_PRIORITY + 3, 
                             &accelerometer_handle, 
-                            APP_CPU_NUM);
+                            PRO_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLaserSensor, 
                             "LaserTask", 
                             2048*2, 
                             NULL, 
-                            5, 
+                            tskIDLE_PRIORITY + 2, 
                             &laser_handle, 
-                            APP_CPU_NUM);
+                            PRO_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLora,
                             "LoRaTask",
                             2048*2,
                             NULL,
-                            5,
+                            configMAX_PRIORITIES - 1,
                             &lora_handle,
-                            PRO_CPU_NUM);
+                            APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskTemperature,
                             "TempTask",
                             2048 * 2,
                             NULL,
-                            5,
+                            tskIDLE_PRIORITY + 2,
                             &temperature_handle,
-                            PRO_CPU_NUM);
+                            APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskHeartbeat,
                             "HeartbeatTask",
@@ -145,7 +156,7 @@ void app_main(void) {
                             NULL,
                             tskIDLE_PRIORITY + 1,
                             &heartbeat_handle,
-                            PRO_CPU_NUM);
+                            APP_CPU_NUM);
 
     if (!lora_handle || !laser_handle || !temperature_handle || !accelerometer_handle || !heartbeat_handle) {
         ESP_LOGE(TAG, "Error creating tasks");
@@ -170,14 +181,17 @@ void vTaskAccelerometer(void *pvParameters) {
 
         //     xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
         // }
-
-        if (mpu6050_get_angles(&mpu6050_config, &angles_data, -1)) {
-            ESP_LOGI(TAG, "ACC Pitch: %.2f, ACC Roll: %.2f", angles_data.accel.pitch, angles_data.accel.roll);
+        if (xSemaphoreTake(mpu6050_mutex, portMAX_DELAY) == pdTRUE) {
             
-            snprintf(data, sizeof(data), "ACC,%d,%.2f,%.2f", lora_config.device_id, angles_data.accel.pitch, angles_data.accel.roll);
-            prepare_lora_packet(ID_BROADCAST, CMD_ACCELEROMETER, data, &packet);
+            if (mpu6050_get_angles(&mpu6050_config, &angles_data, -1)) {
+                ESP_LOGI(TAG, "ACC Pitch: %.2f, ACC Roll: %.2f", angles_data.accel.pitch, angles_data.accel.roll);
+                
+                snprintf(data, sizeof(data), "ACC,%d,%.2f,%.2f", lora_config.device_id, angles_data.accel.pitch, angles_data.accel.roll);
+                prepare_lora_packet(ID_BROADCAST, CMD_ACCELEROMETER, data, &packet);
 
-            xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
+                xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
+            }
+            xSemaphoreGive(mpu6050_mutex);
         }
 
         vTaskDelay(4000 / portTICK_PERIOD_MS);
@@ -192,7 +206,10 @@ void vTaskLaserSensor(void *pvParameters) {
     char data[15];
 
     while (true) {
-        distance = laser_sensor_get_value(&laser_config);
+        if (xSemaphoreTake(laser_mutex, portMAX_DELAY) == pdTRUE) {
+            distance = laser_sensor_get_value(&laser_config);
+            xSemaphoreGive(laser_mutex);
+        }
         
         if (abs(distance - last_distance) > 10) {
             ESP_LOGI(TAG, "Distance: %hu mm", distance);
@@ -216,13 +233,17 @@ void vTaskTemperature(void *pvParameters) {
     char data[30];
 
     while (true) {
-        if (sht30_measure(&sht30_config, &sht30_data)) {
-            ESP_LOGI(TAG, "Temperature: %.2f °C, Humidity: %.2f %%", sht30_data.temperature, sht30_data.humidity);
+        if (xSemaphoreTake(sht30_mutex, portMAX_DELAY) == pdTRUE) {
             
-            snprintf(data, sizeof(data), "TMP,%d,%.2f,%.2f", lora_config.device_id, sht30_data.temperature, sht30_data.humidity);
-            prepare_lora_packet(ID_BROADCAST, CMD_TEMPERATURE, data, &packet);
+            if (sht30_measure(&sht30_config, &sht30_data)) {
+                ESP_LOGI(TAG, "Temperature: %.2f °C, Humidity: %.2f %%", sht30_data.temperature, sht30_data.humidity);
+                
+                snprintf(data, sizeof(data), "TMP,%d,%.2f,%.2f", lora_config.device_id, sht30_data.temperature, sht30_data.humidity);
+                prepare_lora_packet(ID_BROADCAST, CMD_TEMPERATURE, data, &packet);
 
-            xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
+                xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
+            }
+            xSemaphoreGive(sht30_mutex);
         }
 
         vTaskDelay(10000 / portTICK_PERIOD_MS);
@@ -275,9 +296,18 @@ void vTaskHeartbeat(void *pvParameters) {
         task_heartbeat = uxTaskGetStackHighWaterMark(heartbeat_handle) * 4;
         uptime = esp_log_timestamp() / 1000; // Uptime in seconds
         // heap = esp_get_free_heap_size(); // Free heap memory in bytes
-        mpu6050_status = mpu6050_is_alive(&mpu6050_config);
-        laser_status = laser_sensor_get_value(&laser_config);
-        sht30_status = sht30_get_status(&sht30_config, &status);
+        if (xSemaphoreTake(mpu6050_mutex, portMAX_DELAY) == pdTRUE) {
+            mpu6050_status = mpu6050_is_alive(&mpu6050_config);
+            xSemaphoreGive(mpu6050_mutex);
+        }
+        if (xSemaphoreTake(laser_mutex, portMAX_DELAY) == pdTRUE) {
+            laser_status = laser_sensor_get_value(&laser_config);
+            xSemaphoreGive(laser_mutex);
+        }
+        if (xSemaphoreTake(sht30_mutex, portMAX_DELAY) == pdTRUE) {
+            sht30_status = sht30_get_status(&sht30_config, &status);
+            xSemaphoreGive(sht30_mutex);
+        }
 
         snprintf(data, sizeof(data), "HB,%d,%d,%d,%d,%d,%d,%lu,%d,%d,%d", lora_config.device_id, task_acc, task_laser, task_temp, 
             task_lora, task_heartbeat, uptime, mpu6050_status, laser_status, sht30_status);
