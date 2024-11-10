@@ -21,8 +21,8 @@ extern "C" {
 #define MAX_BUFFER_SIZE 237
 
 typedef struct {
-    uint8_t buffer[MAX_BUFFER_SIZE];
     uint32_t size;
+    uint8_t buffer[MAX_BUFFER_SIZE];
 } lora_packet_t;
 
 /**
@@ -121,6 +121,7 @@ typedef struct lora_module_t {
     bandwidth_t bandwidth; // Largura de banda
     lora_class_t lora_class; // Classe de operação
     lora_window_t lora_window; // Janela de recepção
+    uint32_t password; // Senha da rede
     uint8_t device_id; // ID do dispositivo
 } lora_module_t;
 
@@ -174,7 +175,15 @@ bool lora_module_receive(lora_module_t *lora, lora_packet_t *lora_packet);
  */
 bool prepare_lora_packet(uint16_t id, lora_cmd_t command, char *data, lora_packet_t *packet);
 
-const char* get_message_from_lora_packet(lora_packet_t *packet);
+/**
+ * @brief Set the network password
+ * 
+ * @param lora LoRa module configuration structure
+ * @param password Network password
+ * @return true if the password was set successfully
+ * @return false if an error occurred while setting the password
+ */
+bool lora_module_set_password(lora_module_t *lora, uint32_t password);
 
 #ifdef __cplusplus
 }
