@@ -71,6 +71,12 @@ bool lora_module_init(lora_module_t *lora_module) {
     }
 
     ESP_LOGI(TAG, "Bandwidth, spread factor and coding rate configured successfully");
+
+    if (!lora_module_set_password(lora_module, lora_module->password)) {
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Password set successfully");
     
     _print_device_info(&local_device_info);
 
@@ -114,6 +120,56 @@ bool lora_module_receive(lora_module_t *lora_module, lora_packet_t *lora_packet)
     lora_packet->size = bytes_read;
 
     return true;
+}
+
+bool lora_module_set_password(lora_module_t *lora_module, uint32_t password) {
+    if (!IS_VALID(lora_module)) {
+        return false;
+    }
+
+    uint8_t i = 0;
+    uint8_t buffer_payload[MAX_BUFFER_SIZE] = {0};
+
+    buffer_payload[i++] = 0x04; // Subcommand: Set password
+    buffer_payload[i++] = password % 256; // Password LSB
+    buffer_payload[i++] = (password / 256) & 0xFF;
+    buffer_payload[i++] = ((password / 256) >> 8) & 0xFF;
+    buffer_payload[i++] = ((password / 256) >> 16) & 0xFF;
+
+    lora_packet_t packet;
+    if (!_prepare_packet_command(local_device_info.id, CMD_SET_PASSWORD, buffer_payload, i, &packet)) {
+        return false;
+    }
+
+    uint32_t buffer_password = (buffer_payload[2] << 8) | buffer_payload[1];
+
+    if (buffer_password == local_device_info.password) {
+        ESP_LOGI(TAG, "Password already set");
+        return true;
+    } 
+
+    if (!lora_module_send(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error sending packet");
+        return false;
+    }
+
+    if (!lora_module_receive(lora_module, &packet)) {
+        ESP_LOGE(TAG, "Error receiving packet");
+        return false;
+    }
+
+    if (packet.buffer[2] != CMD_SET_PASSWORD) {
+        ESP_LOGE("CMD_SET_PASSWORD", "Invalid command received: %02X", packet.buffer[2]);
+        return false;
+    }
+
+    if (_read_local_device_info(lora_module)) {
+        if (local_device_info.password == buffer_password) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**

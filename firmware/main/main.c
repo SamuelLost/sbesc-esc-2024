@@ -37,6 +37,7 @@ static lora_module_t lora_config = {
     .lora_class = LORA_CLASS_C,
     .lora_window = LORA_WINDOW_5s,
     .device_id = 0x00,
+    .password = 4321,
 };
 
 static laser_sensor_t laser_config = {

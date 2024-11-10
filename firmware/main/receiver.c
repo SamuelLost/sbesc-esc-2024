@@ -32,6 +32,7 @@ lora_module_t lora_config = {
     .lora_class = LORA_CLASS_C,
     .lora_window = LORA_WINDOW_5s,
     .device_id = 1, //Default: 254
+    .password = 4321,
 };
 
 void vTaskAccelerometer(void *pvParameters);
