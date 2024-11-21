@@ -2,8 +2,10 @@
 
 #define TAG_WIFI "WIFI"
 #define CONFIG_MAXIMUM_RETRY 5
-#define CONFIG_WIFI_SSID "brisa-182118"
-#define CONFIG_WIFI_PASSWORD "1yzn6sri"
+// #define CONFIG_WIFI_SSID "brisa-182118"
+// #define CONFIG_WIFI_PASSWORD "1yzn6sri"
+#define CONFIG_WIFI_SSID "Lost"
+#define CONFIG_WIFI_PASSWORD "samuel1234"
 
 #define INFO_AP "SSID: " CONFIG_WIFI_SSID ", password: " CONFIG_WIFI_PASSWORD
 

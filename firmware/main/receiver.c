@@ -12,6 +12,7 @@
 
 #define TAG "MAIN"
 #define LENGTH_PIPE 72
+#define LENGTH_FLOAT 5
 
 const char *ACCEL_TOPICS[] = {"acc/x", "acc/y", "acc/z"};
 const char *ANGLE_TOPICS[] = {"angle/pitch", "angle/roll"};
@@ -37,6 +38,7 @@ lora_module_t lora_config = {
 
 void vTaskAccelerometer(void *pvParameters);
 void vTaskLora(void *pvParameters);
+float get_water_column_height(uint16_t distance);
 
 void app_main(void) {
 
@@ -72,7 +74,7 @@ void vTaskLora(void *pvParameters) {
     uint16_t distance;
     char device[6];
     int device_id;
-    float temp, hum;
+    float temp, hum, water_height;
     char msg[232];
     char temp_msg[30];
     size_t message_size;
@@ -131,11 +133,11 @@ void vTaskLora(void *pvParameters) {
                         break;
                     case CMD_LASER:
                         sscanf(msg, "%5[^,],%d,%hu", device, &device_id, &distance);
-                        if (distance > LENGTH_PIPE) distance = distance - LENGTH_PIPE;
                         ESP_LOGI(TAG, "Distance received");
-                        ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %hu", device, device_id, distance);
+                        water_height = get_water_column_height(distance);
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %.2f", device, device_id, water_height);
 
-                        snprintf(temp_msg, sizeof(temp_msg), "%hu", distance);
+                        snprintf(temp_msg, sizeof(temp_msg), "%.2f", water_height);
                         mqtt_publish(LASER_TOPIC, temp_msg);
 
                         break;
@@ -173,4 +175,13 @@ void vTaskLora(void *pvParameters) {
 
         vTaskDelay(250 / portTICK_PERIOD_MS);
     }
+}
+
+float get_water_column_height(uint16_t distance) {
+    float distance_cm = distance / 10; // Convert mm to cm
+    if ((distance_cm + LENGTH_FLOAT) > LENGTH_PIPE) {
+        return -1;
+    }
+
+    return (LENGTH_PIPE - (distance_cm + LENGTH_FLOAT));
 }
