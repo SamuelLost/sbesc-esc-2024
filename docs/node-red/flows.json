@@ -482,9 +482,9 @@
         "min": 0,
         "max": "10000",
         "colors": [
-            "#00b500",
+            "#ca3838",
             "#e6e600",
-            "#ca3838"
+            "#00b500"
         ],
         "seg1": "",
         "seg2": "",
@@ -531,34 +531,6 @@
         ]
     },
     {
-        "id": "fe06831a23358842",
-        "type": "ui_gauge",
-        "z": "8c28d107711c05cd",
-        "name": "",
-        "group": "203977a880902e41",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "gtype": "donut",
-        "title": "Free Stack",
-        "label": "bytes",
-        "format": "{{value}}",
-        "min": 0,
-        "max": "10000",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 670,
-        "y": 500,
-        "wires": []
-    },
-    {
         "id": "bda171d2e51c0f43",
         "type": "mqtt in",
         "z": "8c28d107711c05cd",
@@ -575,7 +547,7 @@
         "y": 500,
         "wires": [
             [
-                "fe06831a23358842"
+                "fd969cfb8826725d"
             ]
         ]
     },
@@ -596,7 +568,7 @@
         "y": 560,
         "wires": [
             [
-                "6dc1baae2309a35a"
+                "ef72d829409d16dc"
             ]
         ]
     },
@@ -617,7 +589,7 @@
         "y": 620,
         "wires": [
             [
-                "e166fab69a1d85bc"
+                "506133ba97fcc534"
             ]
         ]
     },
@@ -638,93 +610,9 @@
         "y": 680,
         "wires": [
             [
-                "2064c54dabb0b359"
+                "22e65f31b81d0c2e"
             ]
         ]
-    },
-    {
-        "id": "6dc1baae2309a35a",
-        "type": "ui_gauge",
-        "z": "8c28d107711c05cd",
-        "name": "",
-        "group": "f8226b0218409325",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "gtype": "donut",
-        "title": "Free Stack",
-        "label": "bytes",
-        "format": "{{value}}",
-        "min": 0,
-        "max": "10000",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 670,
-        "y": 560,
-        "wires": []
-    },
-    {
-        "id": "e166fab69a1d85bc",
-        "type": "ui_gauge",
-        "z": "8c28d107711c05cd",
-        "name": "",
-        "group": "556a22b7bd04d450",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "gtype": "donut",
-        "title": "Free Stack",
-        "label": "bytes",
-        "format": "{{value}}",
-        "min": 0,
-        "max": "10000",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 670,
-        "y": 620,
-        "wires": []
-    },
-    {
-        "id": "2064c54dabb0b359",
-        "type": "ui_gauge",
-        "z": "8c28d107711c05cd",
-        "name": "",
-        "group": "3124c0b820f66912",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "gtype": "donut",
-        "title": "Free Stack",
-        "label": "bytes",
-        "format": "{{value}}",
-        "min": 0,
-        "max": "10000",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 670,
-        "y": 680,
-        "wires": []
     },
     {
         "id": "415a81256061d006",
@@ -914,6 +802,118 @@
         "color": "#000000",
         "x": 660,
         "y": 920,
+        "wires": []
+    },
+    {
+        "id": "fd969cfb8826725d",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "",
+        "group": "203977a880902e41",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "Free Stack",
+        "label": "bytes",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "10000",
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#00b500"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 670,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "ef72d829409d16dc",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "",
+        "group": "f8226b0218409325",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "Free Stack",
+        "label": "bytes",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "10000",
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#00b500"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 670,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "506133ba97fcc534",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "",
+        "group": "556a22b7bd04d450",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "Free Stack",
+        "label": "bytes",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "10000",
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#00b500"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 670,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "22e65f31b81d0c2e",
+        "type": "ui_gauge",
+        "z": "8c28d107711c05cd",
+        "name": "",
+        "group": "3124c0b820f66912",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "Free Stack",
+        "label": "bytes",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "10000",
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#00b500"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 670,
+        "y": 680,
         "wires": []
     }
 ]

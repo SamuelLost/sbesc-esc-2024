@@ -124,7 +124,7 @@ void app_main(void) {
                             NULL, 
                             tskIDLE_PRIORITY + 3, 
                             &accelerometer_handle, 
-                            PRO_CPU_NUM);
+                            APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLaserSensor, 
                             "LaserTask", 
@@ -132,7 +132,7 @@ void app_main(void) {
                             NULL, 
                             tskIDLE_PRIORITY + 2, 
                             &laser_handle, 
-                            PRO_CPU_NUM);
+                            APP_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskLora,
                             "LoRaTask",
@@ -140,7 +140,7 @@ void app_main(void) {
                             NULL,
                             configMAX_PRIORITIES - 1,
                             &lora_handle,
-                            APP_CPU_NUM);
+                            PRO_CPU_NUM);
 
     xTaskCreatePinnedToCore(vTaskTemperature,
                             "TempTask",
@@ -156,7 +156,7 @@ void app_main(void) {
                             NULL,
                             tskIDLE_PRIORITY + 1,
                             &heartbeat_handle,
-                            APP_CPU_NUM);
+                            PRO_CPU_NUM);
 
     if (!lora_handle || !laser_handle || !temperature_handle || !accelerometer_handle || !heartbeat_handle) {
         ESP_LOGE(TAG, "Error creating tasks");
