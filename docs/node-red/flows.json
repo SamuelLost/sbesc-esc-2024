@@ -278,7 +278,7 @@
         "seg2": "",
         "diff": false,
         "className": "",
-        "x": 630,
+        "x": 670,
         "y": 200,
         "wires": []
     },
@@ -348,7 +348,7 @@
         "seg2": "",
         "diff": false,
         "className": "",
-        "x": 640,
+        "x": 680,
         "y": 260,
         "wires": []
     },
@@ -356,12 +356,12 @@
         "id": "c4294d6c0a1981af",
         "type": "ui_chart",
         "z": "8c28d107711c05cd",
-        "name": "Gŕaficos das acelerações",
+        "name": "Gŕaficos dos ângulos",
         "group": "74f382c1d5c39979",
         "order": 1,
         "width": "30",
         "height": "10",
-        "label": "Gŕaficos das acelerações",
+        "label": "Gŕaficos dos ângulos",
         "chartType": "line",
         "legend": "true",
         "xformat": "auto",
@@ -390,7 +390,7 @@
         "outputs": 1,
         "useDifferentColor": false,
         "className": "",
-        "x": 590,
+        "x": 640,
         "y": 380,
         "wires": [
             []
@@ -428,10 +428,10 @@
         "height": "6",
         "gtype": "wave",
         "title": "Nível da água",
-        "label": "mm",
+        "label": "cm",
         "format": "{{value}}",
         "min": 0,
-        "max": "2000",
+        "max": "40",
         "colors": [
             "#00b500",
             "#e6e600",
@@ -441,7 +441,7 @@
         "seg2": "",
         "diff": false,
         "className": "",
-        "x": 620,
+        "x": 660,
         "y": 320,
         "wires": []
     },
@@ -480,7 +480,7 @@
         "label": "bytes",
         "format": "{{value}}",
         "min": 0,
-        "max": "10000",
+        "max": "16384",
         "colors": [
             "#ca3838",
             "#e6e600",
@@ -493,21 +493,6 @@
         "x": 670,
         "y": 440,
         "wires": []
-    },
-    {
-        "id": "0ea1a5bde99e74ef",
-        "type": "chartjs-vertical-bar",
-        "z": "8c28d107711c05cd",
-        "name": "",
-        "path": "charts",
-        "charttitle": "Chart title",
-        "xaxis": "Item",
-        "yaxis": "Value",
-        "x": 1130,
-        "y": 300,
-        "wires": [
-            []
-        ]
     },
     {
         "id": "54e6b16f26e87ab7",
@@ -648,12 +633,10 @@
         "finalize": "",
         "libs": [],
         "x": 450,
-        "y": 800,
+        "y": 740,
         "wires": [
             [
-                "50e88e79d057954b",
-                "8b43d9b0dc2e06ac",
-                "b327e6bd8f19bd07"
+                "50e88e79d057954b"
             ]
         ]
     },
@@ -695,7 +678,7 @@
         "y": 800,
         "wires": [
             [
-                "969f2a8c3b985033"
+                "200776ca90f887a4"
             ]
         ]
     },
@@ -716,7 +699,7 @@
         "y": 860,
         "wires": [
             [
-                "969f2a8c3b985033"
+                "e26759544d7a8af4"
             ]
         ]
     },
@@ -776,7 +759,7 @@
         "rh": 0,
         "inputs": 0,
         "x": 230,
-        "y": 920,
+        "y": 980,
         "wires": [
             [
                 "725d1b8ad9e9e1ff"
@@ -801,7 +784,7 @@
         "fontSize": 16,
         "color": "#000000",
         "x": 660,
-        "y": 920,
+        "y": 980,
         "wires": []
     },
     {
@@ -818,7 +801,7 @@
         "label": "bytes",
         "format": "{{value}}",
         "min": 0,
-        "max": "10000",
+        "max": "16384",
         "colors": [
             "#ca3838",
             "#e6e600",
@@ -846,7 +829,7 @@
         "label": "bytes",
         "format": "{{value}}",
         "min": 0,
-        "max": "10000",
+        "max": "16384",
         "colors": [
             "#ca3838",
             "#e6e600",
@@ -874,7 +857,7 @@
         "label": "bytes",
         "format": "{{value}}",
         "min": 0,
-        "max": "10000",
+        "max": "16384",
         "colors": [
             "#ca3838",
             "#e6e600",
@@ -902,7 +885,7 @@
         "label": "bytes",
         "format": "{{value}}",
         "min": 0,
-        "max": "10000",
+        "max": "8192",
         "colors": [
             "#ca3838",
             "#e6e600",
@@ -915,5 +898,107 @@
         "x": 670,
         "y": 680,
         "wires": []
+    },
+    {
+        "id": "5ef5fdd84c1cc8dc",
+        "type": "mqtt in",
+        "z": "8c28d107711c05cd",
+        "name": "Status LoRa",
+        "topic": "status/lora",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "c455ae49eadb2021",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 230,
+        "y": 920,
+        "wires": [
+            [
+                "fb905604da6d5334"
+            ]
+        ]
+    },
+    {
+        "id": "a5662e0df7df1ae7",
+        "type": "ui_text",
+        "z": "8c28d107711c05cd",
+        "group": "556a22b7bd04d450",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "Status LoRa",
+        "label": "LoRa Communication",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 670,
+        "y": 920,
+        "wires": []
+    },
+    {
+        "id": "200776ca90f887a4",
+        "type": "function",
+        "z": "8c28d107711c05cd",
+        "name": "Parse",
+        "func": "if (msg.payload == '1')\n    msg.payload = \"Connected\";\nelse {\n    msg.payload = \"Disconnected\";\n}\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 800,
+        "wires": [
+            [
+                "8b43d9b0dc2e06ac"
+            ]
+        ]
+    },
+    {
+        "id": "e26759544d7a8af4",
+        "type": "function",
+        "z": "8c28d107711c05cd",
+        "name": "Parse",
+        "func": "if (msg.payload == '1')\n    msg.payload = \"Connected\";\nelse {\n    msg.payload = \"Disconnected\";\n}\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 860,
+        "wires": [
+            [
+                "b327e6bd8f19bd07"
+            ]
+        ]
+    },
+    {
+        "id": "fb905604da6d5334",
+        "type": "function",
+        "z": "8c28d107711c05cd",
+        "name": "Parse",
+        "func": "if (msg.payload == '1')\n    msg.payload = \"Connected\";\nelse {\n    msg.payload = \"Disconnected\";\n}\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 920,
+        "wires": [
+            [
+                "a5662e0df7df1ae7"
+            ]
+        ]
     }
 ]

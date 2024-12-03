@@ -9,6 +9,9 @@
 #include "uart_driver.h"
 #include "freertos/queue.h"
 
+#define MEMORY_TASK 2048 * 2
+#define HEART_BEAT_TASK 2048
+
 #define TAG "MAIN"
 #define ID_BROADCAST 1
 
@@ -120,7 +123,7 @@ void app_main(void) {
 
     xTaskCreatePinnedToCore(vTaskAccelerometer, 
                             "AccelTask", 
-                            2048 * 2, 
+                            MEMORY_TASK, 
                             NULL, 
                             tskIDLE_PRIORITY + 3, 
                             &accelerometer_handle, 
@@ -128,7 +131,7 @@ void app_main(void) {
 
     xTaskCreatePinnedToCore(vTaskLaserSensor, 
                             "LaserTask", 
-                            2048*2, 
+                            MEMORY_TASK, 
                             NULL, 
                             tskIDLE_PRIORITY + 2, 
                             &laser_handle, 
@@ -136,7 +139,7 @@ void app_main(void) {
 
     xTaskCreatePinnedToCore(vTaskLora,
                             "LoRaTask",
-                            2048*2,
+                            MEMORY_TASK,
                             NULL,
                             configMAX_PRIORITIES - 1,
                             &lora_handle,
@@ -144,7 +147,7 @@ void app_main(void) {
 
     xTaskCreatePinnedToCore(vTaskTemperature,
                             "TempTask",
-                            2048 * 2,
+                            MEMORY_TASK,
                             NULL,
                             tskIDLE_PRIORITY + 2,
                             &temperature_handle,
@@ -152,7 +155,7 @@ void app_main(void) {
 
     xTaskCreatePinnedToCore(vTaskHeartbeat,
                             "HeartbeatTask",
-                            2048,
+                            HEART_BEAT_TASK,
                             NULL,
                             tskIDLE_PRIORITY + 1,
                             &heartbeat_handle,
@@ -165,22 +168,11 @@ void app_main(void) {
 }
 
 void vTaskAccelerometer(void *pvParameters) {
-    // acceleration_data_t accel_data = {};
-    // gyroscope_data_t gyro_data = {};
     angles_data_t angles_data = {};
     lora_packet_t packet;
     char data[30];
 
     while (true) {
-
-        // if (mpu6050_get_acceleration(&mpu6050_config, &accel_data, ACCEL_MPS2)) {
-        //     ESP_LOGI("m/s²", "X: %.2f, Y: %.2f, Z: %.2f", accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
-
-        //     snprintf(data, sizeof(data), "ACC,%d,%.2f,%.2f,%.2f", lora_config.device_id, accel_data.accel_x.converted, accel_data.accel_y.converted, accel_data.accel_z.converted);
-        //     prepare_lora_packet(ID_BROADCAST, CMD_ACCELEROMETER, data, &packet); 
-
-        //     xQueueSend(queue_lora_packets, &packet, portMAX_DELAY);
-        // }
         if (xSemaphoreTake(mpu6050_mutex, portMAX_DELAY) == pdTRUE) {
             
             if (mpu6050_get_angles(&mpu6050_config, &angles_data, -1)) {
@@ -279,7 +271,6 @@ void vTaskHeartbeat(void *pvParameters) {
     UBaseType_t task_lora;
     UBaseType_t task_heartbeat;
     uint32_t uptime = 0;
-    uint32_t heap = 0;
     char data[60];
     lora_packet_t packet;
     bool mpu6050_status = false;
@@ -295,7 +286,7 @@ void vTaskHeartbeat(void *pvParameters) {
         task_lora = uxTaskGetStackHighWaterMark(lora_handle) * 4;
         task_heartbeat = uxTaskGetStackHighWaterMark(heartbeat_handle) * 4;
         uptime = esp_log_timestamp() / 1000; // Uptime in seconds
-        // heap = esp_get_free_heap_size(); // Free heap memory in bytes
+        
         if (xSemaphoreTake(mpu6050_mutex, portMAX_DELAY) == pdTRUE) {
             mpu6050_status = mpu6050_is_alive(&mpu6050_config);
             xSemaphoreGive(mpu6050_mutex);

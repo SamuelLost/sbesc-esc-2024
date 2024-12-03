@@ -11,8 +11,8 @@
 #include "freertos/task.h"
 
 #define TAG "MAIN"
-#define LENGTH_PIPE 72
-#define LENGTH_FLOAT 5
+#define LENGTH_PIPE 77
+#define LENGTH_FLOAT 31.4
 
 const char *ACCEL_TOPICS[] = {"acc/x", "acc/y", "acc/z"};
 const char *ANGLE_TOPICS[] = {"angle/pitch", "angle/roll"};
@@ -88,11 +88,13 @@ void vTaskLora(void *pvParameters) {
     char mpu6050_status[2];
     char laser_status[2];
     char sht30_status[2];
+    char lora_status[1];
 
     while (true) {
         if (lora_module_receive(&lora_config, &packet)) {
             ESP_LOGI(TAG, "Received: %ld bytes", packet.size);
-
+            lora_status[0] = '1';
+            mqtt_publish("status/lora", lora_status);
             // Calcula o tamanho da mensagem
             message_size = packet.size - 5;  // Subtrai 3 (ID + comando) e 2 (CRC)
             if (message_size > 0) {
@@ -134,24 +136,26 @@ void vTaskLora(void *pvParameters) {
                     case CMD_LASER:
                         sscanf(msg, "%5[^,],%d,%hu", device, &device_id, &distance);
                         ESP_LOGI(TAG, "Distance received");
+                        ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %hu", device, device_id, distance);
                         water_height = get_water_column_height(distance);
-                        ESP_LOGI(TAG, "Device: %s, ID: %d, Distance: %.2f", device, device_id, water_height);
+                        ESP_LOGI(TAG, "Water Column: %.2f", water_height);
 
                         snprintf(temp_msg, sizeof(temp_msg), "%.2f", water_height);
                         mqtt_publish(LASER_TOPIC, temp_msg);
 
                         break;
                     case CMD_HEARTBEAT:
-                        ESP_LOGI(TAG, "Heartbeat received: %.*s", (int)message_size, msg);
+                        // ESP_LOGI(TAG, "Heartbeat received: %.*s", (int)message_size, msg);
                         // snprintf(data, sizeof(data), "HB,%d,%d,%d,%d,%d,%d,%lu,%lu,%d,%d,%d", lora_config.device_id, task_acc, task_laser, task_temp, 
                                 // task_lora, task_heartbeat, heap, uptime, mpu6050_status, laser_status, sht30_status);
                         
                         sscanf(msg, "%5[^,],%d,%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%1[^,],%1[^,],%1[^,]", device, &device_id, task_acc, task_laser, task_temp, 
                             task_lora, task_heartbeat, uptime, mpu6050_status, laser_status, sht30_status);
+                        lora_status[0] = '1';
                         ESP_LOGI(TAG, "Heartbeat received");
                         ESP_LOGI(TAG, "Device: %s, ID: %d, Task Acc: %s, Task Laser: %s, Task Temp: %s, Task Lora: %s, Task Heartbeat: %s, Uptime: %s, MPU6050: %s, Laser: %s, SHT30: %s", 
                             device, device_id, task_acc, task_laser, task_temp, task_lora, task_heartbeat, uptime, mpu6050_status, laser_status, sht30_status);
-                        // ESP_LOGI(TAG, "%s", mpu6050_status);
+                        
                         mqtt_publish("tasks/acc", task_acc);
                         mqtt_publish("tasks/laser", task_laser);
                         mqtt_publish("tasks/temp", task_temp);
@@ -163,12 +167,14 @@ void vTaskLora(void *pvParameters) {
                         mqtt_publish("status/laser", laser_status);
                         mqtt_publish("status/sht30", sht30_status);
 
-                            
                         break;
                     default:
                         ESP_LOGI(TAG, "Message: %.*s", (int)message_size, msg);
                         break;
                 }
+            } else {
+                lora_status[0] = '0';
+                mqtt_publish("status/lora", lora_status);
             }
 
         }
@@ -180,7 +186,7 @@ void vTaskLora(void *pvParameters) {
 float get_water_column_height(uint16_t distance) {
     float distance_cm = distance / 10; // Convert mm to cm
     if ((distance_cm + LENGTH_FLOAT) > LENGTH_PIPE) {
-        return -1;
+        return 0;
     }
 
     return (LENGTH_PIPE - (distance_cm + LENGTH_FLOAT));
